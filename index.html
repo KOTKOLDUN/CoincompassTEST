@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoinCompass | Firebase Cloud</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<header>
+    <div class="logo-title">CoinCompass</div>
+    <nav>
+        <button class="tab active" onclick="tab('add',this)">Добавить</button>
+        <button class="tab" onclick="tab('history',this)">История</button>
+        <button class="tab" onclick="tab('stats',this)">Статистика</button>
+        <button class="tab" onclick="tab('months',this)">По месяцам</button>
+    </nav>
+</header>
+
+<div id="loginSection">
+    <h2>Вход / Регистрация</h2>
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Пароль">
+    <button onclick="login()">Войти</button>
+    <button onclick="register()">Зарегистрироваться</button>
+</div>
+
+<button id="logoutBtn" onclick="logout()">Выйти</button>
+
+<div class="container" id="mainApp">
+    <div id="add" class="section active">
+        <h2 id="formTitle">Добавить расход</h2>
+        <div class="form">
+            <input id="amount" type="number" placeholder="Сумма">
+            <select id="category">
+                <option>Еда</option>
+                <option>Транспорт</option>
+                <option>Развлечения</option>
+                <option>Жилье</option>
+                <option>Покупки</option>
+                <option>Прочее</option>
+            </select>
+            <input id="desc" placeholder="Описание">
+            <button id="submitBtn" class="main-btn" onclick="saveExpense()">Сохранить расход</button>
+            <button id="cancelBtn" class="cancel-btn" onclick="resetForm()">Отмена редактирования</button>
+        </div>
+    </div>
+
+    <div id="history" class="section">
+        <h2>История расходов</h2>
+        <table>
+            <thead>
+                <tr><th>Дата</th><th>Категория</th><th>Сумма</th><th>Описание</th><th>Действие</th></tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+        </table>
+        <div class="tools">
+            <button onclick="exportData()">Скачать JSON</button>
+        </div>
+    </div>
+
+    <div id="stats" class="section">
+        <h2>Статистика</h2>
+        <div class="stats">
+            <div class="cards-row">
+                <div class="card"><div class="card-title">Всего расходов</div><div id="total" class="card-value">0</div></div>
+                <div class="card"><div class="card-title">Операций</div><div id="count" class="card-value">0</div></div>
+            </div>
+            <div class="chart-container">
+                <canvas id="chart"></canvas>
+                <div id="filterButtons"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="months" class="section">
+        <h2>Расходы по месяцам</h2>
+        <table>
+            <thead><tr><th>Месяц</th><th>Сумма</th></tr></thead>
+            <tbody id="monthBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="notify" class="notify">Готово</div>
+
+<script src="script.js"></script>
+</body>
+</html>
