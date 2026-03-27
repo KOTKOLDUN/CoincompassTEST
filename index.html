@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grow Fish - Deep Ocean Adventure</title>
+    <title>Grow Fish - Ocean Adventure</title>
     <style>
-        /* ============================================
-           CSS - Visual Styling & UI
-           ============================================ */
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
        
         * {
@@ -28,7 +25,6 @@
             background: linear-gradient(180deg, #006994 0%, #001a33 100%);
         }
        
-        /* UI Overlay Container */
         #uiLayer {
             position: absolute;
             top: 0;
@@ -194,6 +190,22 @@
             box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
         }
        
+        /* Map indicator */
+        .mapIndicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            border-radius: 20px;
+            padding: 10px 30px;
+            color: #ffd700;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.2rem;
+            pointer-events: none;
+        }
+       
         .comboDisplay {
             position: absolute;
             top: 100px;
@@ -228,7 +240,6 @@
             font-weight: bold;
         }
        
-        /* Power-up Indicators */
         #powerups {
             position: absolute;
             bottom: 30px;
@@ -268,6 +279,39 @@
         .powerupIndicator.speed { border-color: #00d4ff; color: #00d4ff; }
         .powerupIndicator.shield { border-color: #ffd700; color: #ffd700; }
         .powerupIndicator.magnet { border-color: #ff69b4; color: #ff69b4; }
+       
+        /* Portal notification */
+        .portalNotification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(147, 51, 234, 0.9) 0%, rgba(59, 130, 246, 0.9) 100%);
+            border: 3px solid #a855f7;
+            border-radius: 20px;
+            padding: 30px 50px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            z-index: 50;
+        }
+       
+        .portalNotification.visible {
+            opacity: 1;
+        }
+       
+        .portalTitle {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+       
+        .portalText {
+            color: #e9d5ff;
+            font-size: 1.1rem;
+        }
        
         /* Pause Menu */
         #pauseMenu {
@@ -364,7 +408,7 @@
        
         .stats {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
             margin-bottom: 2rem;
             color: #a8e6ff;
@@ -383,7 +427,6 @@
             color: #fff;
         }
        
-        /* Pause Button */
         #pauseBtn {
             position: absolute;
             top: 20px;
@@ -408,7 +451,6 @@
             transform: scale(1.1);
         }
        
-        /* Tutorial overlay */
         .tutorial {
             position: absolute;
             bottom: 100px;
@@ -425,12 +467,22 @@
         .tutorial.visible {
             opacity: 1;
         }
+       
+        /* Minimap */
+        #minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
-    <!-- ============================================
-         HTML - Game Structure
-         ============================================ -->
     <canvas id="gameCanvas"></canvas>
    
     <div id="uiLayer">
@@ -440,12 +492,11 @@
             <p class="subtitle">
                 Swim through the living ocean ecosystem.<br>
                 Eat smaller fish to grow. Avoid larger predators.<br>
-                Become the Apex Predator of the deep!
+                Find portals to explore new depths!
             </p>
             <button class="btn" id="startBtn">DIVE IN</button>
             <div class="controls-hint">
-                <span class="control-key"><span class="key">WASD</span> or <span class="key">Arrows</span> to Swim</span>
-                <span class="control-key"><span class="key">Mouse</span> to Guide</span>
+                <span class="control-key"><span class="key">W</span> <span class="key">A</span> <span class="key">S</span> <span class="key">D</span> to Swim</span>
                 <span class="control-key"><span class="key">P</span> to Pause</span>
             </div>
         </div>
@@ -468,9 +519,18 @@
             </div>
         </div>
        
+        <div class="mapIndicator" id="mapIndicator" style="display: none;">
+            🗺️ <span id="currentMap">Shallow Waters</span>
+        </div>
+       
         <div class="comboDisplay" id="comboDisplay">
             <div class="comboText" id="comboText">COMBO x2</div>
             <div class="comboMultiplier">+50% Bonus!</div>
+        </div>
+       
+        <div class="portalNotification" id="portalNotification">
+            <div class="portalTitle">🌀 Portal Opened!</div>
+            <div class="portalText">Swim to the center to enter the next zone</div>
         </div>
        
         <div id="powerups">
@@ -482,7 +542,7 @@
         <button id="pauseBtn" style="display: none;">⏸</button>
        
         <div class="tutorial" id="tutorial">
-            Eat smaller fish (green) • Avoid larger predators (red)
+            Eat smaller fish (green) • Avoid predators (red) • Find the portal (purple)
         </div>
        
         <!-- Pause Menu -->
@@ -506,6 +566,10 @@
                     <div class="statValue" id="maxStage">Tiny</div>
                     <div>Max Stage</div>
                 </div>
+                <div class="stat">
+                    <div class="statValue" id="mapsCleared">0</div>
+                    <div>Zones Explored</div>
+                </div>
             </div>
             <button class="btn" id="restartBtn">SWIM AGAIN</button>
         </div>
@@ -513,60 +577,175 @@
 
     <script>
         /* ============================================
-           GAME ENGINE - Core Systems
+           GAME CONFIGURATION - Multiple Maps System
            ============================================ */
        
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
        
-        // Game State
         const GameState = {
             MENU: 0,
             PLAYING: 1,
             PAUSED: 2,
-            GAMEOVER: 3
+            GAMEOVER: 3,
+            PORTAL_TRANSITION: 4
         };
        
         let currentState = GameState.MENU;
-        let animationId = null;
         let lastTime = 0;
+        let currentMapIndex = 0;
+        let mapsCleared = 0;
        
-        // Game Configuration
-        const CONFIG = {
-            worldWidth: 3000,
-            worldHeight: 2000,
-            baseSpeed: 200,
-            maxFish: 80,
-            spawnRate: 1000,
-            comboTimeout: 3000,
-            growthStages: [
-                { name: 'Tiny Fish', size: 15, eatSize: 10, color: '#4ade80', nextThreshold: 50 },
-                { name: 'Small Fish', size: 25, eatSize: 20, color: '#60a5fa', nextThreshold: 150 },
-                { name: 'Medium Fish', size: 40, eatSize: 35, color: '#a78bfa', nextThreshold: 350 },
-                { name: 'Large Fish', size: 60, eatSize: 55, color: '#f472b6', nextThreshold: 700 },
-                { name: 'Apex Predator', size: 85, eatSize: 80, color: '#fbbf24', nextThreshold: Infinity }
-            ]
+        // Map configurations - 5 different zones
+        const MAPS = [
+            {
+                name: "Shallow Waters",
+                width: 4000,
+                height: 3000,
+                bgColor: ["#006994", "#001a33"],
+                fishTypes: ['minnow', 'clownfish', 'butterflyfish'],
+                predators: [],
+                maxFish: 60,
+                portalAt: 3 // Open portal at stage 3
+            },
+            {
+                name: "Coral Reef",
+                width: 5000,
+                height: 4000,
+                bgColor: ["#0077be", "#001a33"],
+                fishTypes: ['angelfish', 'tang', 'parrotfish', 'grouper'],
+                predators: ['small_shark'],
+                maxFish: 80,
+                portalAt: 4
+            },
+            {
+                name: "Deep Ocean",
+                width: 6000,
+                height: 5000,
+                bgColor: ["#004d7a", "#000d1a"],
+                fishTypes: ['lanternfish', 'fangtooth', 'viperfish', 'oarfish'],
+                predators: ['hammerhead', 'tiger_shark'],
+                maxFish: 100,
+                portalAt: 4
+            },
+            {
+                name: "Abyssal Zone",
+                width: 7000,
+                height: 6000,
+                bgColor: ["#001f3f", "#000510"],
+                fishTypes: ['anglerfish', 'blobfish', 'gulper_eel'],
+                predators: ['great_white', 'mako'],
+                maxFish: 120,
+                portalAt: 4
+            },
+            {
+                name: "Mariana Trench",
+                width: 8000,
+                height: 7000,
+                bgColor: ["#000a1a", "#000000"],
+                fishTypes: ['giant_squid', 'colossal_squid'],
+                predators: ['megalodon', 'kraken'],
+                maxFish: 80,
+                portalAt: 5 // Final boss area
+            }
+        ];
+       
+        // Fish species database
+        const FISH_SPECIES = {
+            // Prey - Small fish
+            minnow: { size: 8, speed: 100, color: '#90EE90', behavior: 'flee', points: 5 },
+            clownfish: { size: 12, speed: 90, color: '#FF6B35', behavior: 'flee', points: 8 },
+            butterflyfish: { size: 15, speed: 85, color: '#FFD700', behavior: 'flee', points: 12 },
+            angelfish: { size: 18, speed: 80, color: '#FFB6C1', behavior: 'flee', points: 15 },
+            tang: { size: 20, speed: 95, color: '#4169E1', behavior: 'flee', points: 18 },
+            parrotfish: { size: 25, speed: 75, color: '#00FA9A', behavior: 'flee', points: 22 },
+            lanternfish: { size: 10, speed: 110, color: '#87CEEB', behavior: 'flee', points: 10 },
+            fangtooth: { size: 14, speed: 70, color: '#8B4513', behavior: 'flee', points: 14 },
+           
+            // Medium fish
+            grouper: { size: 35, speed: 60, color: '#708090', behavior: 'neutral', points: 30 },
+            viperfish: { size: 30, speed: 100, color: '#4B0082', behavior: 'neutral', points: 28 },
+            oarfish: { size: 40, speed: 50, color: '#C0C0C0', behavior: 'neutral', points: 35 },
+            anglerfish: { size: 45, speed: 40, color: '#2F4F4F', behavior: 'chase_small', points: 40 },
+            blobfish: { size: 38, speed: 30, color: '#FFB6C1', behavior: 'neutral', points: 32 },
+            gulper_eel: { size: 42, speed: 55, color: '#483D8B', behavior: 'chase_small', points: 38 },
+           
+            // Large prey (rare)
+            giant_squid: { size: 80, speed: 70, color: '#8B0000', behavior: 'chase_medium', points: 100 },
+            colossal_squid: { size: 100, speed: 65, color: '#4B0082', behavior: 'chase_medium', points: 150 },
+           
+            // Predators (Sharks!)
+            small_shark: {
+                size: 60, speed: 120, color: '#696969',
+                behavior: 'predator', damage: 1, chaseRange: 400,
+                pattern: 'circle_and_dash'
+            },
+            hammerhead: {
+                size: 80, speed: 130, color: '#556B2F',
+                behavior: 'predator', damage: 2, chaseRange: 500,
+                pattern: 'zigzag_chase'
+            },
+            tiger_shark: {
+                size: 90, speed: 125, color: '#8B6914',
+                behavior: 'predator', damage: 2, chaseRange: 450,
+                pattern: 'ambush'
+            },
+            great_white: {
+                size: 120, speed: 140, color: '#2F4F4F',
+                behavior: 'predator', damage: 3, chaseRange: 600,
+                pattern: 'fast_charge'
+            },
+            mako: {
+                size: 100, speed: 160, color: '#4682B4',
+                behavior: 'predator', damage: 2, chaseRange: 550,
+                pattern: 'speed_hit'
+            },
+            megalodon: {
+                size: 200, speed: 100, color: '#1C1C1C',
+                behavior: 'predator', damage: 5, chaseRange: 800,
+                pattern: 'territorial'
+            },
+            kraken: {
+                size: 300, speed: 60, color: '#4B0082',
+                behavior: 'predator', damage: 10, chaseRange: 1000,
+                pattern: 'tentacle_grab'
+            }
         };
        
+        // Growth stages
+        const GROWTH_STAGES = [
+            { name: 'Tiny Fish', size: 15, eatSize: 12, color: '#4ade80', nextThreshold: 50 },
+            { name: 'Small Fish', size: 25, eatSize: 22, color: '#60a5fa', nextThreshold: 150 },
+            { name: 'Medium Fish', size: 40, eatSize: 35, color: '#a78bfa', nextThreshold: 350 },
+            { name: 'Large Fish', size: 60, eatSize: 55, color: '#f472b6', nextThreshold: 700 },
+            { name: 'Apex Predator', size: 85, eatSize: 80, color: '#fbbf24', nextThreshold: 1200 },
+            { name: 'Ocean Master', size: 120, eatSize: 110, color: '#ff6b6b', nextThreshold: 2000 },
+            { name: 'Leviathan', size: 180, eatSize: 170, color: '#9333ea', nextThreshold: Infinity }
+        ];
+       
         /* ============================================
-           PLAYER SYSTEM - Fish Growth & Control
+           PLAYER SYSTEM
            ============================================ */
        
         class Player {
             constructor() {
-                this.x = CONFIG.worldWidth / 2;
-                this.y = CONFIG.worldHeight / 2;
+                this.reset();
+            }
+           
+            reset() {
+                const map = MAPS[currentMapIndex];
+                this.x = map.width / 2;
+                this.y = map.height / 2;
                 this.vx = 0;
                 this.vy = 0;
                 this.angle = 0;
                 this.stage = 0;
-                this.size = CONFIG.growthStages[0].size;
+                this.size = GROWTH_STAGES[0].size;
                 this.growth = 0;
                 this.score = 0;
                 this.fishEaten = 0;
                 this.maxStage = 0;
                
-                // Power-ups
                 this.speedBoost = false;
                 this.shield = false;
                 this.magnet = false;
@@ -574,42 +753,33 @@
                 this.shieldTimer = 0;
                 this.magnetTimer = 0;
                
-                // Visual
                 this.tailAngle = 0;
                 this.finAngle = 0;
                
-                // Input
-                this.keys = {};
-                this.mouseX = 0;
-                this.mouseY = 0;
-                this.useMouse = false;
+                this.keys = { w: false, a: false, s: false, d: false };
+                this.invulnerable = false;
+                this.invulnerableTimer = 0;
             }
            
             update(dt) {
-                // Handle input
+                // WASD Input
                 let dx = 0;
                 let dy = 0;
                
-                // Keyboard input
-                if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
-                if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
-                if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
-                if (this.keys['d'] || this.keys['arrowright']) dx += 1;
+                if (this.keys.w) dy -= 1;
+                if (this.keys.s) dy += 1;
+                if (this.keys.a) dx -= 1;
+                if (this.keys.d) dx += 1;
                
-                // Mouse input (relative to canvas center)
-                if (this.useMouse && (Math.abs(this.mouseX) > 10 || Math.abs(this.mouseY) > 10)) {
-                    dx = this.mouseX / 200;
-                    dy = this.mouseY / 200;
-                    // Clamp
-                    const len = Math.sqrt(dx*dx + dy*dy);
-                    if (len > 1) {
-                        dx /= len;
-                        dy /= len;
-                    }
+                // Normalize diagonal
+                if (dx !== 0 && dy !== 0) {
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    dx /= len;
+                    dy /= len;
                 }
                
                 // Apply movement
-                const speed = this.speedBoost ? CONFIG.baseSpeed * 1.8 : CONFIG.baseSpeed;
+                const speed = this.speedBoost ? 300 : 200;
                 const accel = 800;
                
                 if (dx !== 0 || dy !== 0) {
@@ -622,8 +792,8 @@
                 this.vy *= 0.95;
                
                 // Limit speed
-                const velocity = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
-                const maxVel = speed * (1 + this.stage * 0.1);
+                const velocity = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const maxVel = speed * (1 + this.stage * 0.15);
                 if (velocity > maxVel) {
                     this.vx = (this.vx / velocity) * maxVel;
                     this.vy = (this.vy / velocity) * maxVel;
@@ -633,11 +803,12 @@
                 this.x += this.vx * dt;
                 this.y += this.vy * dt;
                
-                // World bounds
-                this.x = Math.max(this.size, Math.min(CONFIG.worldWidth - this.size, this.x));
-                this.y = Math.max(this.size, Math.min(CONFIG.worldHeight - this.size, this.y));
+                // Map bounds
+                const map = MAPS[currentMapIndex];
+                this.x = Math.max(this.size, Math.min(map.width - this.size, this.x));
+                this.y = Math.max(this.size, Math.min(map.height - this.size, this.y));
                
-                // Update angle based on velocity
+                // Update angle
                 if (velocity > 10) {
                     this.angle = Math.atan2(this.vy, this.vx);
                 }
@@ -646,7 +817,7 @@
                 this.tailAngle += dt * 15 * (velocity / 100 + 0.5);
                 this.finAngle = Math.sin(Date.now() / 200) * 0.3;
                
-                // Update power-up timers
+                // Timers
                 if (this.speedBoost) {
                     this.speedTimer -= dt * 1000;
                     if (this.speedTimer <= 0) this.speedBoost = false;
@@ -659,87 +830,109 @@
                     this.magnetTimer -= dt * 1000;
                     if (this.magnetTimer <= 0) this.magnet = false;
                 }
+                if (this.invulnerable) {
+                    this.invulnerableTimer -= dt * 1000;
+                    if (this.invulnerableTimer <= 0) this.invulnerable = false;
+                }
             }
            
             draw(ctx, cameraX, cameraY) {
                 const screenX = this.x - cameraX;
                 const screenY = this.y - cameraY;
                
+                // Skip if off screen
+                if (screenX < -200 || screenX > canvas.width + 200 ||
+                    screenY < -200 || screenY > canvas.height + 200) return;
+               
                 ctx.save();
                 ctx.translate(screenX, screenY);
                 ctx.rotate(this.angle);
                
+                // Invulnerability flash
+                if (this.invulnerable && Math.floor(Date.now() / 100) % 2 === 0) {
+                    ctx.globalAlpha = 0.5;
+                }
+               
                 // Shield effect
                 if (this.shield) {
                     ctx.beginPath();
-                    ctx.arc(0, 0, this.size + 10, 0, Math.PI * 2);
+                    ctx.arc(0, 0, this.size + 15, 0, Math.PI * 2);
                     ctx.strokeStyle = `rgba(255, 215, 0, ${0.5 + Math.sin(Date.now() / 100) * 0.3})`;
-                    ctx.lineWidth = 3;
+                    ctx.lineWidth = 4;
                     ctx.stroke();
                     ctx.fillStyle = `rgba(255, 215, 0, 0.1)`;
                     ctx.fill();
                 }
                
-                // Speed trail effect
-                if (this.speedBoost && Math.random() > 0.5) {
-                    ctx.fillStyle = 'rgba(0, 212, 255, 0.3)';
-                    ctx.fillRect(-this.size * 2, -this.size/3, this.size, this.size/1.5);
+                // Speed trail
+                if (this.speedBoost && Math.random() > 0.3) {
+                    ctx.fillStyle = 'rgba(0, 212, 255, 0.4)';
+                    ctx.fillRect(-this.size * 2.5, -this.size/2, this.size * 1.5, this.size);
                 }
                
-                // Fish body (teardrop shape)
-                const stage = CONFIG.growthStages[this.stage];
+                // Fish body
+                const stage = GROWTH_STAGES[this.stage];
                 ctx.fillStyle = stage.color;
                
-                // Glow effect for larger fish
-                if (this.stage >= 2) {
-                    ctx.shadowBlur = 20;
+                // Glow for large fish
+                if (this.stage >= 3) {
+                    ctx.shadowBlur = 25;
                     ctx.shadowColor = stage.color;
                 }
                
+                // Main body (teardrop)
                 ctx.beginPath();
-                ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, 0, this.size, this.size * 0.55, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
                
                 // Tail
-                const tailWag = Math.sin(this.tailAngle) * 0.3;
-                ctx.fillStyle = this.darkenColor(stage.color, 20);
+                const tailWag = Math.sin(this.tailAngle) * 0.4;
+                ctx.fillStyle = this.darken(stage.color, 20);
                 ctx.beginPath();
                 ctx.moveTo(-this.size * 0.7, 0);
-                ctx.lineTo(-this.size * 1.5, -this.size * 0.5 + tailWag * this.size * 0.3);
-                ctx.lineTo(-this.size * 1.5, this.size * 0.5 + tailWag * this.size * 0.3);
+                ctx.lineTo(-this.size * 1.6, -this.size * 0.6 + tailWag * this.size * 0.4);
+                ctx.quadraticCurveTo(-this.size * 1.8, tailWag * this.size * 0.2, -this.size * 1.6, this.size * 0.6 + tailWag * this.size * 0.4);
                 ctx.closePath();
                 ctx.fill();
                
                 // Side fins
-                ctx.fillStyle = this.darkenColor(stage.color, 10);
+                ctx.fillStyle = this.darken(stage.color, 10);
                 ctx.beginPath();
-                ctx.ellipse(0, this.size * 0.4, this.size * 0.4, this.size * 0.2, 0.5 + this.finAngle, 0, Math.PI * 2);
-                ctx.ellipse(0, -this.size * 0.4, this.size * 0.4, this.size * 0.2, -0.5 - this.finAngle, 0, Math.PI * 2);
+                ctx.ellipse(this.size * 0.1, this.size * 0.45, this.size * 0.5, this.size * 0.25, 0.6 + this.finAngle, 0, Math.PI * 2);
+                ctx.ellipse(this.size * 0.1, -this.size * 0.45, this.size * 0.5, this.size * 0.25, -0.6 - this.finAngle, 0, Math.PI * 2);
+                ctx.fill();
+               
+                // Dorsal fin
+                ctx.beginPath();
+                ctx.moveTo(0, -this.size * 0.5);
+                ctx.lineTo(-this.size * 0.3, -this.size * 0.9);
+                ctx.lineTo(this.size * 0.2, -this.size * 0.6);
+                ctx.closePath();
                 ctx.fill();
                
                 // Eye
                 ctx.fillStyle = 'white';
                 ctx.beginPath();
-                ctx.arc(this.size * 0.5, -this.size * 0.15, this.size * 0.2, 0, Math.PI * 2);
+                ctx.arc(this.size * 0.5, -this.size * 0.15, this.size * 0.22, 0, Math.PI * 2);
                 ctx.fill();
                
                 ctx.fillStyle = 'black';
                 ctx.beginPath();
-                ctx.arc(this.size * 0.6, -this.size * 0.15, this.size * 0.1, 0, Math.PI * 2);
+                ctx.arc(this.size * 0.6, -this.size * 0.15, this.size * 0.12, 0, Math.PI * 2);
                 ctx.fill();
                
                 // Highlight
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
                 ctx.beginPath();
-                ctx.ellipse(this.size * 0.2, -this.size * 0.2, this.size * 0.3, this.size * 0.15, -0.3, 0, Math.PI * 2);
+                ctx.ellipse(this.size * 0.2, -this.size * 0.25, this.size * 0.35, this.size * 0.18, -0.3, 0, Math.PI * 2);
                 ctx.fill();
                
                 ctx.restore();
             }
            
-            darkenColor(color, percent) {
-                // Simple color darkening for fish parts
+            darken(color, percent) {
+                // Simple darken for visual variety
                 return color;
             }
            
@@ -748,18 +941,36 @@
                 this.score += amount * 10;
                
                 // Check stage progression
-                const currentStage = CONFIG.growthStages[this.stage];
-                if (this.growth >= currentStage.nextThreshold && this.stage < CONFIG.growthStages.length - 1) {
+                const currentStage = GROWTH_STAGES[this.stage];
+                if (this.growth >= currentStage.nextThreshold && this.stage < GROWTH_STAGES.length - 1) {
                     this.stage++;
-                    this.size = CONFIG.growthStages[this.stage].size;
+                    this.size = GROWTH_STAGES[this.stage].size;
                     this.growth = 0;
                     if (this.stage > this.maxStage) this.maxStage = this.stage;
                    
-                    // Visual feedback
-                    createExplosion(this.x, this.y, CONFIG.growthStages[this.stage].color, 20);
+                    createExplosion(this.x, this.y, GROWTH_STAGES[this.stage].color, 30);
+                   
+                    // Check for portal opening
+                    checkPortalCondition();
                 }
                
                 updateHUD();
+            }
+           
+            takeDamage(damage) {
+                if (this.shield || this.invulnerable) return false;
+               
+                // Lose growth instead of instant death for smaller hits
+                if (damage === 1) {
+                    this.growth = Math.max(0, this.growth - 30);
+                    this.invulnerable = true;
+                    this.invulnerableTimer = 1500;
+                    createExplosion(this.x, this.y, '#ff4444', 10);
+                    updateHUD();
+                    return false; // Not dead
+                }
+               
+                return true; // Dead
             }
            
             activatePowerup(type) {
@@ -782,114 +993,64 @@
         }
        
         /* ============================================
-           FISH AI - Enemy & Prey System
+           FISH & SHARK AI SYSTEM
            ============================================ */
        
         class Fish {
-            constructor(x, y, type) {
+            constructor(x, y, speciesKey) {
                 this.x = x;
                 this.y = y;
-                this.type = type; // 'prey', 'neutral', 'predator'
+                this.species = FISH_SPECIES[speciesKey];
+                this.speciesKey = speciesKey;
                
-                // Size based on type and random variation
-                const baseSizes = { prey: 8, neutral: 20, predator: 45 };
-                const variation = 0.5 + Math.random() * 0.5;
-                this.size = baseSizes[type] * variation;
+                this.size = this.species.size * (0.8 + Math.random() * 0.4);
                
-                // Velocity
-                const speed = type === 'prey' ? 80 : type === 'neutral' ? 120 : 100;
                 const angle = Math.random() * Math.PI * 2;
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed;
+                this.vx = Math.cos(angle) * this.species.speed;
+                this.vy = Math.sin(angle) * this.species.speed;
                
-                // Visual properties
                 this.angle = angle;
                 this.tailAngle = Math.random() * Math.PI * 2;
-               
-                // Color based on type
-                const colors = {
-                    prey: ['#86efac', '#4ade80', '#22c55e'],
-                    neutral: ['#60a5fa', '#3b82f6', '#2563eb'],
-                    predator: ['#f87171', '#ef4444', '#dc2626']
-                };
-                this.color = colors[type][Math.floor(Math.random() * colors[type].length)];
                
                 // AI state
                 this.state = 'swim';
                 this.stateTimer = 0;
                 this.targetX = null;
                 this.targetY = null;
+                this.dashCooldown = 0;
+                this.ambushTimer = 0;
                
-                // Schooling behavior for prey
-                this.schoolId = Math.floor(Math.random() * 5); // Random school group
+                // Visual offset for variety
+                this.finOffset = Math.random() * 0.5;
             }
            
             update(dt, player) {
-                this.tailAngle += dt * 10;
+                this.tailAngle += dt * 12;
+                const map = MAPS[currentMapIndex];
                
-                // AI Behavior based on type
                 const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-                const seeDistance = 200 + this.size * 2;
+                const seeRange = this.species.chaseRange || 250;
                
-                switch(this.type) {
-                    case 'prey':
-                        // Flee from player if close and player is bigger
-                        if (distToPlayer < seeDistance && player.size > this.size * 1.2) {
-                            this.state = 'flee';
-                            // Flee in opposite direction
-                            const fleeAngle = Math.atan2(this.y - player.y, this.x - player.x);
-                            this.vx += Math.cos(fleeAngle) * 300 * dt;
-                            this.vy += Math.sin(fleeAngle) * 300 * dt;
-                        } else {
-                            // Random swimming with schooling tendency
-                            this.state = 'swim';
-                            if (Math.random() < 0.02) {
-                                this.vx += (Math.random() - 0.5) * 100;
-                                this.vy += (Math.random() - 0.5) * 100;
-                            }
-                        }
-                        break;
-                       
-                    case 'neutral':
-                        // Avoid player if too close
-                        if (distToPlayer < seeDistance * 0.5) {
-                            const avoidAngle = Math.atan2(this.y - player.y, this.x - player.x);
-                            this.vx += Math.cos(avoidAngle) * 200 * dt;
-                            this.vy += Math.sin(avoidAngle) * 200 * dt;
-                        }
-                        break;
-                       
-                    case 'predator':
-                        // Chase player if player is smaller
-                        if (distToPlayer < seeDistance * 1.5 && player.size < this.size * 0.8) {
-                            this.state = 'chase';
-                            const chaseAngle = Math.atan2(player.y - this.y, player.x - this.x);
-                            this.vx += Math.cos(chaseAngle) * 150 * dt;
-                            this.vy += Math.sin(chaseAngle) * 150 * dt;
-                        } else {
-                            this.state = 'patrol';
-                            // Patrol behavior
-                            if (Math.random() < 0.01) {
-                                const patrolAngle = Math.random() * Math.PI * 2;
-                                this.vx = Math.cos(patrolAngle) * 100;
-                                this.vy = Math.sin(patrolAngle) * 100;
-                            }
-                        }
-                        break;
+                // SHARK BEHAVIORS - Aggressive predators!
+                if (this.species.behavior === 'predator') {
+                    this.updateSharkAI(dt, player, distToPlayer, seeRange, map);
+                } else {
+                    this.updateNormalAI(dt, player, distToPlayer, seeRange, map);
                 }
                
-                // Magnet effect - attract small fish to player
-                if (player.magnet && this.type === 'prey' && player.size > this.size * 1.2) {
-                    const magnetDist = 300;
-                    if (distToPlayer < magnetDist) {
-                        const attractAngle = Math.atan2(player.y - this.y, player.x - this.x);
-                        this.vx += Math.cos(attractAngle) * 400 * dt;
-                        this.vy += Math.sin(attractAngle) * 400 * dt;
-                    }
+                // Magnet effect
+                if (player.magnet && this.species.behavior !== 'predator' &&
+                    player.size > this.size * 1.2 && distToPlayer < 400) {
+                    const attractAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                    this.vx += Math.cos(attractAngle) * 500 * dt;
+                    this.vy += Math.sin(attractAngle) * 500 * dt;
                 }
                
                 // Limit velocity
-                const maxSpeed = this.type === 'prey' ? 120 : this.type === 'predator' ? 140 : 100;
+                let maxSpeed = this.species.speed;
+                if (this.state === 'chase') maxSpeed *= 1.3;
+                if (this.state === 'dash') maxSpeed *= 2;
+               
                 const vel = Math.hypot(this.vx, this.vy);
                 if (vel > maxSpeed) {
                     this.vx = (this.vx / vel) * maxSpeed;
@@ -905,63 +1066,410 @@
                     this.angle = Math.atan2(this.vy, this.vx);
                 }
                
-                // World bounds - wrap around or bounce
-                const margin = 100;
-                if (this.x < -margin) this.x = CONFIG.worldWidth + margin;
-                if (this.x > CONFIG.worldWidth + margin) this.x = -margin;
-                if (this.y < -margin) this.y = CONFIG.worldHeight + margin;
-                if (this.y > CONFIG.worldHeight + margin) this.y = -margin;
+                // World bounds - wrap around
+                const margin = 150;
+                if (this.x < -margin) this.x = map.width + margin;
+                if (this.x > map.width + margin) this.x = -margin;
+                if (this.y < -margin) this.y = map.height + margin;
+                if (this.y > map.height + margin) this.y = -margin;
+            }
+           
+            updateSharkAI(dt, player, dist, seeRange, map) {
+                const pattern = this.species.pattern;
+               
+                switch(pattern) {
+                    case 'circle_and_dash':
+                        // Circle then dash attack
+                        if (dist < seeRange && player.size < this.size * 0.9) {
+                            if (this.dashCooldown <= 0) {
+                                this.state = 'dash';
+                                const dashAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                                this.vx = Math.cos(dashAngle) * this.species.speed * 2.5;
+                                this.vy = Math.sin(dashAngle) * this.species.speed * 2.5;
+                                this.dashCooldown = 2000;
+                            } else {
+                                // Circle around
+                                this.state = 'circle';
+                                const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+                                const circleAngle = angleToPlayer + Math.PI / 2;
+                                this.vx += Math.cos(circleAngle) * 200 * dt;
+                                this.vy += Math.sin(circleAngle) * 200 * dt;
+                            }
+                        } else {
+                            this.state = 'patrol';
+                            this.dashCooldown -= dt * 1000;
+                        }
+                        break;
+                       
+                    case 'zigzag_chase':
+                        // Zigzag pursuit
+                        if (dist < seeRange && player.size < this.size * 0.9) {
+                            this.state = 'chase';
+                            const baseAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                            const zigzag = Math.sin(Date.now() / 200) * 0.5;
+                            const chaseAngle = baseAngle + zigzag;
+                            this.vx += Math.cos(chaseAngle) * 300 * dt;
+                            this.vy += Math.sin(chaseAngle) * 300 * dt;
+                        } else {
+                            this.state = 'patrol';
+                        }
+                        break;
+                       
+                    case 'ambush':
+                        // Wait then fast attack
+                        if (dist < seeRange * 0.3 && player.size < this.size * 0.9) {
+                            if (this.ambushTimer <= 0) {
+                                this.state = 'ambush_attack';
+                                const attackAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                                this.vx = Math.cos(attackAngle) * this.species.speed * 3;
+                                this.vy = Math.sin(attackAngle) * this.species.speed * 3;
+                                this.ambushTimer = 3000;
+                            } else {
+                                this.state = 'wait';
+                                this.vx *= 0.9;
+                                this.vy *= 0.9;
+                                this.ambushTimer -= dt * 1000;
+                            }
+                        } else {
+                            this.state = 'approach';
+                            const approachAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                            this.vx += Math.cos(approachAngle) * 150 * dt;
+                            this.vy += Math.sin(approachAngle) * 150 * dt;
+                            this.ambushTimer -= dt * 1000;
+                        }
+                        break;
+                       
+                    case 'fast_charge':
+                        // Direct fast charge
+                        if (dist < seeRange && player.size < this.size * 0.9) {
+                            this.state = 'charge';
+                            const chargeAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                            this.vx = Math.cos(chargeAngle) * this.species.speed * 1.8;
+                            this.vy = Math.sin(chargeAngle) * this.species.speed * 1.8;
+                        } else {
+                            this.state = 'patrol';
+                        }
+                        break;
+                       
+                    case 'speed_hit':
+                        // Hit and run
+                        if (dist < seeRange && player.size < this.size * 0.9) {
+                            if (dist > 100) {
+                                this.state = 'approach_fast';
+                                const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                                this.vx += Math.cos(angle) * 400 * dt;
+                                this.vy += Math.sin(angle) * 400 * dt;
+                            } else {
+                                this.state = 'retreat';
+                                const retreatAngle = Math.atan2(this.y - player.y, this.x - player.x);
+                                this.vx = Math.cos(retreatAngle) * this.species.speed * 1.5;
+                                this.vy = Math.sin(retreatAngle) * this.species.speed * 1.5;
+                            }
+                        }
+                        break;
+                       
+                    case 'territorial':
+                        // Guards an area
+                        const centerX = map.width / 2;
+                        const centerY = map.height / 2;
+                        const distFromCenter = Math.hypot(this.x - centerX, this.y - centerY);
+                       
+                        if (dist < seeRange && player.size < this.size * 0.9) {
+                            this.state = 'defend';
+                            const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                            this.vx += Math.cos(angle) * 250 * dt;
+                            this.vy += Math.sin(angle) * 250 * dt;
+                        } else if (distFromCenter > 500) {
+                            // Return to center
+                            const returnAngle = Math.atan2(centerY - this.y, centerX - this.x);
+                            this.vx += Math.cos(returnAngle) * 150 * dt;
+                            this.vy += Math.sin(returnAngle) * 150 * dt;
+                        }
+                        break;
+                       
+                    case 'tentacle_grab':
+                        // Kraken special - tries to surround
+                        if (dist < seeRange && player.size < this.size * 0.9) {
+                            this.state = 'surround';
+                            const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+                            // Move to intercept player path
+                            const predictX = player.x + player.vx * 0.5;
+                            const predictY = player.y + player.vy * 0.5;
+                            const interceptAngle = Math.atan2(predictY - this.y, predictX - this.x);
+                            this.vx += Math.cos(interceptAngle) * 200 * dt;
+                            this.vy += Math.sin(interceptAngle) * 200 * dt;
+                        }
+                        break;
+                }
+               
+                // Patrol behavior when not chasing
+                if (this.state === 'patrol') {
+                    if (Math.random() < 0.02) {
+                        const patrolAngle = Math.random() * Math.PI * 2;
+                        this.vx += Math.cos(patrolAngle) * 100;
+                        this.vy += Math.sin(patrolAngle) * 100;
+                    }
+                }
+               
+                // Cooldowns
+                if (this.dashCooldown > 0) this.dashCooldown -= dt * 1000;
+            }
+           
+            updateNormalAI(dt, player, dist, seeRange, map) {
+                const behavior = this.species.behavior;
+               
+                switch(behavior) {
+                    case 'flee':
+                        if (dist < seeRange && player.size > this.size * 1.2) {
+                            this.state = 'flee';
+                            const fleeAngle = Math.atan2(this.y - player.y, this.x - player.x);
+                            this.vx += Math.cos(fleeAngle) * 400 * dt;
+                            this.vy += Math.sin(fleeAngle) * 400 * dt;
+                        } else {
+                            this.state = 'swim';
+                            if (Math.random() < 0.03) {
+                                this.vx += (Math.random() - 0.5) * 150;
+                                this.vy += (Math.random() - 0.5) * 150;
+                            }
+                        }
+                        break;
+                       
+                    case 'neutral':
+                        if (dist < seeRange * 0.4) {
+                            const avoidAngle = Math.atan2(this.y - player.y, this.x - player.x);
+                            this.vx += Math.cos(avoidAngle) * 200 * dt;
+                            this.vy += Math.sin(avoidAngle) * 200 * dt;
+                        } else if (Math.random() < 0.02) {
+                            this.vx += (Math.random() - 0.5) * 100;
+                            this.vy += (Math.random() - 0.5) * 100;
+                        }
+                        break;
+                       
+                    case 'chase_small':
+                        // Chases smaller fish but not player unless tiny
+                        if (dist < seeRange && player.size < this.size * 0.5) {
+                            const chaseAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                            this.vx += Math.cos(chaseAngle) * 200 * dt;
+                            this.vy += Math.sin(chaseAngle) * 200 * dt;
+                        }
+                        break;
+                       
+                    case 'chase_medium':
+                        if (dist < seeRange && player.size < this.size * 0.8) {
+                            const chaseAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                            this.vx += Math.cos(chaseAngle) * 180 * dt;
+                            this.vy += Math.sin(chaseAngle) * 180 * dt;
+                        }
+                        break;
+                }
             }
            
             draw(ctx, cameraX, cameraY) {
                 const screenX = this.x - cameraX;
                 const screenY = this.y - cameraY;
                
-                // Skip if off screen
-                if (screenX < -100 || screenX > canvas.width + 100 ||
-                    screenY < -100 || screenY > canvas.height + 100) return;
+                if (screenX < -200 || screenX > canvas.width + 200 ||
+                    screenY < -200 || screenY > canvas.height + 200) return;
                
                 ctx.save();
                 ctx.translate(screenX, screenY);
                 ctx.rotate(this.angle);
                
-                // Draw fish body
-                ctx.fillStyle = this.color;
+                const isShark = this.species.behavior === 'predator';
                
-                // Glow for predators
-                if (this.type === 'predator') {
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = this.color;
+                // Shark glow
+                if (isShark) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = this.species.color;
                 }
                
-                ctx.beginPath();
-                ctx.ellipse(0, 0, this.size, this.size * 0.5, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
+                // Body
+                ctx.fillStyle = this.species.color;
                
-                // Tail animation
-                const tailWag = Math.sin(this.tailAngle) * 0.3;
-                ctx.fillStyle = this.color;
-                ctx.globalAlpha = 0.8;
-                ctx.beginPath();
-                ctx.moveTo(-this.size * 0.8, 0);
-                ctx.lineTo(-this.size * 1.4, -this.size * 0.4 + tailWag * this.size * 0.2);
-                ctx.lineTo(-this.size * 1.4, this.size * 0.4 + tailWag * this.size * 0.2);
-                ctx.closePath();
-                ctx.fill();
-                ctx.globalAlpha = 1;
-               
-                // Eye
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(this.size * 0.4, -this.size * 0.1, this.size * 0.15, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                ctx.arc(this.size * 0.5, -this.size * 0.1, this.size * 0.08, 0, Math.PI * 2);
-                ctx.fill();
+                if (isShark) {
+                    // Shark body - more angular
+                    ctx.beginPath();
+                    ctx.moveTo(this.size, 0);
+                    ctx.lineTo(-this.size * 0.5, -this.size * 0.4);
+                    ctx.lineTo(-this.size * 0.8, -this.size * 0.2);
+                    ctx.lineTo(-this.size, 0);
+                    ctx.lineTo(-this.size * 0.8, this.size * 0.2);
+                    ctx.lineTo(-this.size * 0.5, this.size * 0.4);
+                    ctx.closePath();
+                    ctx.fill();
+                   
+                    // Dorsal fin
+                    ctx.beginPath();
+                    ctx.moveTo(0, -this.size * 0.3);
+                    ctx.lineTo(-this.size * 0.2, -this.size * 0.9);
+                    ctx.lineTo(this.size * 0.3, -this.size * 0.4);
+                    ctx.closePath();
+                    ctx.fill();
+                   
+                    // Pectoral fins
+                    ctx.fillStyle = this.darkenColor(this.species.color, 20);
+                    ctx.beginPath();
+                    ctx.ellipse(this.size * 0.1, this.size * 0.5, this.size * 0.4, this.size * 0.15, 0.5, 0, Math.PI * 2);
+                    ctx.ellipse(this.size * 0.1, -this.size * 0.5, this.size * 0.4, this.size * 0.15, -0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                   
+                    // Tail (crescent shaped)
+                    const tailWag = Math.sin(this.tailAngle) * 0.2;
+                    ctx.fillStyle = this.species.color;
+                    ctx.beginPath();
+                    ctx.moveTo(-this.size * 0.8, 0);
+                    ctx.quadraticCurveTo(-this.size * 1.3, -this.size * 0.6 + tailWag * this.size * 0.3, -this.size * 1.5, -this.size * 0.3);
+                    ctx.quadraticCurveTo(-this.size * 1.4, tailWag * this.size * 0.2, -this.size * 1.5, this.size * 0.3);
+                    ctx.quadraticCurveTo(-this.size * 1.3, this.size * 0.6 + tailWag * this.size * 0.3, -this.size * 0.8, 0);
+                    ctx.fill();
+                   
+                    // Shark eye (more menacing)
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(this.size * 0.4, -this.size * 0.15, this.size * 0.12, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ff4444';
+                    ctx.beginPath();
+                    ctx.arc(this.size * 0.42, -this.size * 0.15, this.size * 0.04, 0, Math.PI * 2);
+                    ctx.fill();
+                   
+                    // Gills
+                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.arc(-this.size * 0.2 + i * 5, 0, this.size * 0.3, -Math.PI/3, Math.PI/3);
+                        ctx.stroke();
+                    }
+                   
+                } else {
+                    // Normal fish body
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.size, this.size * 0.5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                   
+                    // Tail
+                    const tailWag = Math.sin(this.tailAngle) * 0.3;
+                    ctx.fillStyle = this.species.color;
+                    ctx.globalAlpha = 0.9;
+                    ctx.beginPath();
+                    ctx.moveTo(-this.size * 0.8, 0);
+                    ctx.lineTo(-this.size * 1.4, -this.size * 0.5 + tailWag * this.size * 0.25);
+                    ctx.lineTo(-this.size * 1.4, this.size * 0.5 + tailWag * this.size * 0.25);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                   
+                    // Fins
+                    ctx.fillStyle = this.darkenColor(this.species.color, 10);
+                    ctx.beginPath();
+                    ctx.ellipse(0, this.size * 0.4, this.size * 0.35, this.size * 0.18, 0.5, 0, Math.PI * 2);
+                    ctx.ellipse(0, -this.size * 0.4, this.size * 0.35, this.size * 0.18, -0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                   
+                    // Eye
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(this.size * 0.4, -this.size * 0.1, this.size * 0.18, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(this.size * 0.5, -this.size * 0.1, this.size * 0.09, 0, Math.PI * 2);
+                    ctx.fill();
+                }
                
                 ctx.restore();
+            }
+           
+            darkenColor(color, percent) {
+                return color;
+            }
+        }
+       
+        /* ============================================
+           PORTAL SYSTEM
+           ============================================ */
+       
+        class Portal {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 80;
+                this.pulseAngle = 0;
+                this.rotation = 0;
+                this.active = true;
+            }
+           
+            update(dt) {
+                this.pulseAngle += dt * 3;
+                this.rotation += dt * 2;
+            }
+           
+            draw(ctx, cameraX, cameraY) {
+                const screenX = this.x - cameraX;
+                const screenY = this.y - cameraY;
+               
+                if (screenX < -200 || screenX > canvas.width + 200 ||
+                    screenY < -200 || screenY > canvas.height + 200) return;
+               
+                ctx.save();
+                ctx.translate(screenX, screenY);
+               
+                const pulse = 1 + Math.sin(this.pulseAngle) * 0.15;
+               
+                // Outer glow
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.radius * 1.5 * pulse);
+                gradient.addColorStop(0, 'rgba(147, 51, 234, 0.8)');
+                gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.4)');
+                gradient.addColorStop(1, 'rgba(147, 51, 234, 0)');
+               
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * 1.5 * pulse, 0, Math.PI * 2);
+                ctx.fill();
+               
+                // Portal rings
+                for (let i = 0; i < 3; i++) {
+                    ctx.strokeStyle = `rgba(168, 85, 247, ${0.6 - i * 0.15})`;
+                    ctx.lineWidth = 4 - i;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, (this.radius - i * 15) * pulse, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+               
+                // Rotating inner pattern
+                ctx.rotate(this.rotation);
+                ctx.strokeStyle = 'rgba(216, 180, 254, 0.8)';
+                ctx.lineWidth = 3;
+                for (let i = 0; i < 6; i++) {
+                    ctx.rotate(Math.PI / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(this.radius * 0.7, 0);
+                    ctx.stroke();
+                }
+               
+                // Center
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+               
+                // Text
+                ctx.rotate(-this.rotation);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px Nunito';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('ENTER', 0, 0);
+               
+                ctx.restore();
+            }
+           
+            checkPlayer(player) {
+                const dist = Math.hypot(player.x - this.x, player.y - this.y);
+                return dist < this.radius + player.size;
             }
         }
        
@@ -973,8 +1481,8 @@
             constructor(x, y, type) {
                 this.x = x;
                 this.y = y;
-                this.type = type; // 'speed', 'shield', 'magnet', 'golden'
-                this.size = 20;
+                this.type = type;
+                this.size = 25;
                 this.bobAngle = Math.random() * Math.PI * 2;
                 this.pulseAngle = 0;
             }
@@ -998,7 +1506,6 @@
                 const pulse = 1 + Math.sin(this.pulseAngle) * 0.2;
                 ctx.scale(pulse, pulse);
                
-                // Glow
                 const colors = {
                     speed: '#00d4ff',
                     shield: '#ffd700',
@@ -1006,11 +1513,11 @@
                     golden: '#ffd700'
                 };
                
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 25;
                 ctx.shadowColor = colors[this.type];
                
                 if (this.type === 'golden') {
-                    // Golden fish shape
+                    // Golden fish
                     ctx.fillStyle = '#ffd700';
                     ctx.beginPath();
                     ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
@@ -1019,15 +1526,19 @@
                     // Crown
                     ctx.fillStyle = '#ff6b00';
                     ctx.beginPath();
-                    ctx.moveTo(-10, -15);
-                    ctx.lineTo(-5, -25);
-                    ctx.lineTo(0, -20);
-                    ctx.lineTo(5, -25);
-                    ctx.lineTo(10, -15);
+                    ctx.moveTo(-12, -18);
+                    ctx.lineTo(-6, -30);
+                    ctx.lineTo(0, -24);
+                    ctx.lineTo(6, -30);
+                    ctx.lineTo(12, -18);
                     ctx.closePath();
                     ctx.fill();
+                   
+                    // Sparkle
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '20px Arial';
+                    ctx.fillText('✨', 15, -15);
                 } else {
-                    // Orb with icon
                     ctx.fillStyle = colors[this.type];
                     ctx.beginPath();
                     ctx.arc(0, 0, this.size * 0.8, 0, Math.PI * 2);
@@ -1046,34 +1557,34 @@
         }
        
         /* ============================================
-           PARTICLE SYSTEM - Bubbles & Effects
+           PARTICLE SYSTEM
            ============================================ */
        
         class Particle {
             constructor(x, y, type, color = null) {
                 this.x = x;
                 this.y = y;
-                this.type = type; // 'bubble', 'sparkle', 'food'
+                this.type = type;
                 this.life = 1;
                 this.decay = 0.01 + Math.random() * 0.02;
                
                 if (type === 'bubble') {
-                    this.vx = (Math.random() - 0.5) * 20;
-                    this.vy = -50 - Math.random() * 50;
-                    this.size = 2 + Math.random() * 6;
+                    this.vx = (Math.random() - 0.5) * 30;
+                    this.vy = -60 - Math.random() * 60;
+                    this.size = 3 + Math.random() * 8;
                     this.color = `rgba(255, 255, 255, ${0.3 + Math.random() * 0.3})`;
                 } else if (type === 'sparkle') {
-                    this.vx = (Math.random() - 0.5) * 200;
-                    this.vy = (Math.random() - 0.5) * 200;
-                    this.size = 3 + Math.random() * 5;
+                    this.vx = (Math.random() - 0.5) * 250;
+                    this.vy = (Math.random() - 0.5) * 250;
+                    this.size = 4 + Math.random() * 6;
                     this.color = color || '#ffd700';
                     this.decay = 0.02 + Math.random() * 0.03;
-                } else if (type === 'food') {
-                    this.vx = 0;
-                    this.vy = 0;
-                    this.size = 4;
-                    this.color = color;
-                    this.decay = 0.05;
+                } else if (type === 'portal') {
+                    this.vx = (Math.random() - 0.5) * 100;
+                    this.vy = (Math.random() - 0.5) * 100;
+                    this.size = 2 + Math.random() * 4;
+                    this.color = '#a855f7';
+                    this.decay = 0.01;
                 }
             }
            
@@ -1083,10 +1594,10 @@
                 this.life -= this.decay;
                
                 if (this.type === 'bubble') {
-                    this.vx += Math.sin(Date.now() / 500 + this.y / 50) * 10 * dt;
+                    this.vx += Math.sin(Date.now() / 400 + this.y / 30) * 15 * dt;
                 } else if (this.type === 'sparkle') {
-                    this.vx *= 0.95;
-                    this.vy *= 0.95;
+                    this.vx *= 0.92;
+                    this.vy *= 0.92;
                 }
             }
            
@@ -1101,10 +1612,9 @@
                     ctx.beginPath();
                     ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
                     ctx.fill();
-                    // Shine
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
                     ctx.beginPath();
-                    ctx.arc(screenX - this.size * 0.3, screenY - this.size * 0.3, this.size * 0.2, 0, Math.PI * 2);
+                    ctx.arc(screenX - this.size * 0.3, screenY - this.size * 0.3, this.size * 0.25, 0, Math.PI * 2);
                     ctx.fill();
                 } else {
                     ctx.beginPath();
@@ -1117,74 +1627,89 @@
         }
        
         /* ============================================
-           WORLD SYSTEM - Environment & Background
+           WORLD SYSTEM
            ============================================ */
        
         class World {
             constructor() {
                 this.seaweed = [];
+                this.rocks = [];
                 this.lightRays = [];
-                this.generateSeaweed();
-                this.generateLightRays();
+                this.generate();
             }
            
-            generateSeaweed() {
-                for (let i = 0; i < 50; i++) {
+            generate() {
+                const map = MAPS[currentMapIndex];
+               
+                // Generate seaweed
+                this.seaweed = [];
+                for (let i = 0; i < 80; i++) {
                     this.seaweed.push({
-                        x: Math.random() * CONFIG.worldWidth,
-                        y: CONFIG.worldHeight,
-                        height: 100 + Math.random() * 200,
-                        segments: 5 + Math.floor(Math.random() * 5),
+                        x: Math.random() * map.width,
+                        y: map.height,
+                        height: 150 + Math.random() * 300,
+                        segments: 6 + Math.floor(Math.random() * 6),
                         offset: Math.random() * Math.PI * 2,
-                        speed: 0.5 + Math.random() * 0.5,
-                        color: `hsl(${120 + Math.random() * 40}, ${60 + Math.random() * 20}%, ${20 + Math.random() * 20}%)`
+                        speed: 0.3 + Math.random() * 0.7,
+                        color: `hsl(${120 + Math.random() * 50}, ${50 + Math.random() * 30}%, ${15 + Math.random() * 25}%)`,
+                        width: 8 + Math.random() * 12
                     });
                 }
-            }
-           
-            generateLightRays() {
-                for (let i = 0; i < 5; i++) {
+               
+                // Generate rocks/coral
+                this.rocks = [];
+                for (let i = 0; i < 30; i++) {
+                    this.rocks.push({
+                        x: Math.random() * map.width,
+                        y: map.height - 50 - Math.random() * 100,
+                        size: 30 + Math.random() * 80,
+                        color: `hsl(${200 + Math.random() * 40}, 20%, ${20 + Math.random() * 20}%)`
+                    });
+                }
+               
+                // Light rays
+                this.lightRays = [];
+                for (let i = 0; i < 6; i++) {
                     this.lightRays.push({
-                        x: Math.random() * CONFIG.worldWidth,
-                        width: 50 + Math.random() * 100,
-                        angle: 0.1 + Math.random() * 0.2,
-                        opacity: 0.1 + Math.random() * 0.1,
-                        speed: 0.001 + Math.random() * 0.002
+                        x: Math.random() * map.width,
+                        width: 80 + Math.random() * 150,
+                        angle: 0.05 + Math.random() * 0.15,
+                        opacity: 0.08 + Math.random() * 0.08,
+                        speed: 0.0005 + Math.random() * 0.001
                     });
                 }
             }
            
             drawBackground(ctx, cameraX, cameraY) {
-                // Deep ocean gradient is handled by CSS, but we add depth layers
+                const map = MAPS[currentMapIndex];
                
-                // Light rays from surface
+                // Light rays
                 ctx.save();
                 for (const ray of this.lightRays) {
-                    ray.x += Math.sin(Date.now() * ray.speed) * 0.5;
+                    ray.x += Math.sin(Date.now() * ray.speed) * 0.3;
                    
                     const screenX = ray.x - cameraX;
                    
-                    // Only draw if visible
-                    if (screenX > -200 && screenX < canvas.width + 200) {
+                    if (screenX > -300 && screenX < canvas.width + 300) {
                         const gradient = ctx.createLinearGradient(
                             screenX, 0,
                             screenX + Math.sin(ray.angle) * canvas.height,
                             canvas.height
                         );
                         gradient.addColorStop(0, `rgba(255, 255, 255, ${ray.opacity})`);
-                        gradient.addColorStop(0.5, `rgba(0, 212, 255, ${ray.opacity * 0.5})`);
-                        gradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+                        gradient.addColorStop(0.4, `rgba(100, 200, 255, ${ray.opacity * 0.5})`);
+                        gradient.addColorStop(1, 'rgba(0, 100, 200, 0)');
                        
                         ctx.fillStyle = gradient;
                         ctx.beginPath();
                         ctx.moveTo(screenX - ray.width/2, 0);
                         ctx.lineTo(screenX + ray.width/2, 0);
                         ctx.lineTo(
-                            screenX + ray.width/2 + Math.sin(ray.angle) * canvas.height * 0.8,
+                            screenX + ray.width/2 + Math.sin(ray.angle) * canvas.height,
                             canvas.height
                         );
                         ctx.lineTo(
-                            screenX - ray.width/2 + Math.sin(ray.angle) * canvas.height * 0.8,
+                            screenX - ray.width/2 + Math.sin(ray.angle) * canvas.height,
                             canvas.height
                         );
                         ctx.closePath();
@@ -1194,15 +1719,35 @@
                 ctx.restore();
             }
            
-            drawSeaweed(ctx, cameraX, cameraY) {
+            drawForeground(ctx, cameraX, cameraY) {
+                // Draw rocks
+                for (const rock of this.rocks) {
+                    const screenX = rock.x - cameraX;
+                    const screenY = rock.y - cameraY;
+                   
+                    if (screenX < -150 || screenX > canvas.width + 150) continue;
+                   
+                    ctx.fillStyle = rock.color;
+                    ctx.beginPath();
+                    ctx.ellipse(screenX, screenY, rock.size, rock.size * 0.6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                   
+                    // Shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.beginPath();
+                    ctx.ellipse(screenX, screenY + 10, rock.size * 0.9, rock.size * 0.5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+               
+                // Draw seaweed
                 for (const weed of this.seaweed) {
                     const screenX = weed.x - cameraX;
                     const screenY = weed.y - cameraY;
                    
-                    if (screenX < -100 || screenX > canvas.width + 100) continue;
+                    if (screenX < -200 || screenX > canvas.width + 200) continue;
                    
                     ctx.strokeStyle = weed.color;
-                    ctx.lineWidth = 8;
+                    ctx.lineWidth = weed.width;
                     ctx.lineCap = 'round';
                    
                     ctx.beginPath();
@@ -1210,22 +1755,22 @@
                    
                     for (let i = 1; i <= weed.segments; i++) {
                         const segmentY = screenY - (weed.height / weed.segments) * i;
-                        const sway = Math.sin(Date.now() / 1000 * weed.speed + weed.offset + i * 0.5) * (i * 3);
-                        ctx.lineTo(screenX + sway, segmentY);
+                        const sway = Math.sin(Date.now() / 1000 * weed.speed + weed.offset + i * 0.4) * (i * 4);
+                        ctx.quadraticCurveTo(
+                            screenX + sway * 0.5,
+                            segmentY + (weed.height / weed.segments) * 0.5,
+                            screenX + sway,
+                            segmentY
+                        );
                     }
                    
                     ctx.stroke();
                 }
             }
-           
-            drawForeground(ctx, cameraX, cameraY) {
-                // Draw seaweed in foreground for depth
-                this.drawSeaweed(ctx, cameraX, cameraY);
-            }
         }
        
         /* ============================================
-           GAME MANAGER - Main Logic
+           GAME MANAGER
            ============================================ */
        
         let player;
@@ -1233,12 +1778,13 @@
         let powerups = [];
         let particles = [];
         let world;
+        let portal = null;
         let camera = { x: 0, y: 0 };
         let combo = { count: 0, timer: 0, lastEatTime: 0 };
         let spawnTimer = 0;
         let highScore = 0;
+        let portalOpen = false;
        
-        // Load high score
         try {
             highScore = parseInt(localStorage.getItem('growFishHighScore')) || 0;
         } catch(e) {
@@ -1249,45 +1795,43 @@
             resize();
             window.addEventListener('resize', resize);
            
-            player = new Player();
-            world = new World();
-            fishes = [];
-            powerups = [];
-            particles = [];
-            combo = { count: 0, timer: 0, lastEatTime: 0 };
+            resetGame();
            
-            // Initial fish population
-            for (let i = 0; i < 30; i++) {
-                spawnFish();
-            }
-           
-            // Input handlers
+            // WASD handlers
             window.addEventListener('keydown', (e) => {
-                player.keys[e.key.toLowerCase()] = true;
-                if (e.key.toLowerCase() === 'p') togglePause();
+                const key = e.key.toLowerCase();
+                if (key === 'w') player.keys.w = true;
+                if (key === 'a') player.keys.a = true;
+                if (key === 's') player.keys.s = true;
+                if (key === 'd') player.keys.d = true;
+                if (key === 'p') togglePause();
+                if (key === 'e' && portal && portal.checkPlayer(player)) {
+                    enterPortal();
+                }
             });
            
             window.addEventListener('keyup', (e) => {
-                player.keys[e.key.toLowerCase()] = false;
-            });
-           
-            canvas.addEventListener('mousemove', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                player.mouseX = e.clientX - rect.left - canvas.width / 2;
-                player.mouseY = e.clientY - rect.top - canvas.height / 2;
-                player.useMouse = true;
-            });
-           
-            canvas.addEventListener('mouseleave', () => {
-                player.useMouse = false;
+                const key = e.key.toLowerCase();
+                if (key === 'w') player.keys.w = false;
+                if (key === 'a') player.keys.a = false;
+                if (key === 's') player.keys.s = false;
+                if (key === 'd') player.keys.d = false;
             });
            
             // UI handlers
             document.getElementById('startBtn').addEventListener('click', startGame);
             document.getElementById('pauseBtn').addEventListener('click', togglePause);
             document.getElementById('resumeBtn').addEventListener('click', togglePause);
-            document.getElementById('restartBtn').addEventListener('click', restartGame);
-            document.getElementById('restartPauseBtn').addEventListener('click', restartGame);
+            document.getElementById('restartBtn').addEventListener('click', () => {
+                currentMapIndex = 0;
+                mapsCleared = 0;
+                restartGame();
+            });
+            document.getElementById('restartPauseBtn').addEventListener('click', () => {
+                currentMapIndex = 0;
+                mapsCleared = 0;
+                restartGame();
+            });
         }
        
         function resize() {
@@ -1295,15 +1839,84 @@
             canvas.height = window.innerHeight;
         }
        
+        function resetGame() {
+            player = new Player();
+            world = new World();
+            fishes = [];
+            powerups = [];
+            particles = [];
+            portal = null;
+            portalOpen = false;
+            combo = { count: 0, timer: 0, lastEatTime: 0 };
+           
+            // Spawn initial fish
+            spawnInitialFish();
+        }
+       
+        function spawnInitialFish() {
+            const map = MAPS[currentMapIndex];
+           
+            // Spawn prey fish
+            for (let i = 0; i < map.maxFish * 0.6; i++) {
+                spawnFish('prey');
+            }
+           
+            // Spawn neutral fish
+            for (let i = 0; i < map.maxFish * 0.3; i++) {
+                spawnFish('neutral');
+            }
+           
+            // Spawn predators based on map
+            for (const predatorType of map.predators) {
+                for (let i = 0; i < 2 + currentMapIndex; i++) {
+                    spawnSpecificFish(predatorType);
+                }
+            }
+        }
+       
+        function spawnFish(type) {
+            const map = MAPS[currentMapIndex];
+            let speciesKey;
+           
+            if (type === 'prey') {
+                const preyTypes = map.fishTypes.filter(k => FISH_SPECIES[k].behavior === 'flee');
+                speciesKey = preyTypes[Math.floor(Math.random() * preyTypes.length)];
+            } else if (type === 'neutral') {
+                const neutralTypes = map.fishTypes.filter(k =>
+                    FISH_SPECIES[k].behavior === 'neutral' ||
+                    FISH_SPECIES[k].behavior === 'chase_small'
+                );
+                speciesKey = neutralTypes[Math.floor(Math.random() * neutralTypes.length)];
+            }
+           
+            if (!speciesKey) return;
+           
+            spawnSpecificFish(speciesKey);
+        }
+       
+        function spawnSpecificFish(speciesKey) {
+            const map = MAPS[currentMapIndex];
+           
+            let x, y;
+            // Spawn away from player
+            do {
+                x = Math.random() * map.width;
+                y = Math.random() * map.height;
+            } while (Math.hypot(x - player.x, y - player.y) < 500);
+           
+            fishes.push(new Fish(x, y, speciesKey));
+        }
+       
         function startGame() {
             document.getElementById('startMenu').classList.add('hidden');
             document.getElementById('hud').style.display = 'flex';
+            document.getElementById('mapIndicator').style.display = 'block';
             document.getElementById('pauseBtn').style.display = 'flex';
             document.getElementById('tutorial').classList.add('visible');
            
             setTimeout(() => {
                 document.getElementById('tutorial').classList.remove('visible');
-            }, 5000);
+            }, 6000);
            
             currentState = GameState.PLAYING;
             lastTime = performance.now();
@@ -1326,13 +1939,9 @@
             document.getElementById('gameOver').classList.remove('visible');
             document.getElementById('pauseMenu').classList.remove('visible');
            
-            player = new Player();
-            fishes = [];
-            powerups = [];
-            particles = [];
-            combo = { count: 0, timer: 0, lastEatTime: 0 };
-           
-            for (let i = 0; i < 30; i++) spawnFish();
+            currentMapIndex = 0;
+            mapsCleared = 0;
+            resetGame();
            
             currentState = GameState.PLAYING;
             lastTime = performance.now();
@@ -1340,39 +1949,118 @@
             requestAnimationFrame(gameLoop);
         }
        
-        function spawnFish() {
-            // Spawn based on player stage and difficulty
-            const stage = player ? player.stage : 0;
-            const types = ['prey', 'prey', 'neutral'];
+        function checkPortalCondition() {
+            const map = MAPS[currentMapIndex];
            
-            if (stage > 0) types.push('neutral');
-            if (stage > 1) types.push('predator');
-            if (stage > 2) types.push('predator', 'predator');
-           
-            // More dangerous as player grows
-            const type = types[Math.floor(Math.random() * types.length)];
-           
-            // Spawn at edges
-            let x, y;
-            if (Math.random() < 0.5) {
-                x = Math.random() < 0.5 ? -50 : CONFIG.worldWidth + 50;
-                y = Math.random() * CONFIG.worldHeight;
-            } else {
-                x = Math.random() * CONFIG.worldWidth;
-                y = Math.random() < 0.5 ? -50 : CONFIG.worldHeight + 50;
+            if (player.stage >= map.portalAt && !portalOpen) {
+                portalOpen = true;
+                const map = MAPS[currentMapIndex];
+                portal = new Portal(map.width / 2, map.height / 2);
+               
+                // Show notification
+                const notif = document.getElementById('portalNotification');
+                notif.classList.add('visible');
+                setTimeout(() => {
+                    notif.classList.remove('visible');
+                }, 4000);
+            }
+        }
+       
+        function enterPortal() {
+            if (currentMapIndex >= MAPS.length - 1) {
+                // Victory!
+                victory();
+                return;
             }
            
-            fishes.push(new Fish(x, y, type));
+            currentMapIndex++;
+            mapsCleared++;
+           
+            // Transition effect
+            createExplosion(player.x, player.y, '#a855f7', 50);
+           
+            // Reset for new map
+            const map = MAPS[currentMapIndex];
+            player.x = map.width / 2;
+            player.y = map.height / 2;
+            player.vx = 0;
+            player.vy = 0;
+           
+            // Keep some growth progress
+            player.growth = Math.floor(player.growth * 0.5);
+           
+            // Clear and respawn
+            fishes = [];
+            powerups = [];
+            portal = null;
+            portalOpen = false;
+            world.generate();
+            spawnInitialFish();
+           
+            updateHUD();
+           
+            // Show map name
+            document.getElementById(' some growth progress
+            player.growth = Math.floor(player.growth * 0.5);
+           
+            // Clear and respawn
+            fishes = [];
+            powerups = [];
+            portal = null;
+            portalOpen = false;
+            world.generate();
+            spawnInitialFish();
+           
+            updateHUD();
+           
+            // Show map name
+            document.getElementById('currentMap').textContent = map.name;
+        }
+       
+        function victory() {
+            currentState = GameState.GAMEOVER;
+           
+            if (player.score > highScore) {
+                highScore = player.score;
+                try {
+                    localStorage.setItem('growFishHighScore', highScore);
+                } catch(e) {}
+            }
+           
+            document.querySelector('.gameOverTitle').textContent = '🏆 VICTORY!';
+            document.querySelector('.gameOverTitle').style.color = '#ffd700';
+            document.getElementById('finalScore').textContent = player.score;
+            document.getElementById('highScoreDisplay').textContent = highScore;
+            document.getElementById('fishEaten').textContent = player.fishEaten;
+            document.getElementById('maxStage').textContent = GROWTH_STAGES[player.maxStage].name;
+            document.getElementById('mapsCleared').textContent = mapsCleared + 1;
+           
+            document.getElementById('gameOver').classList.add('visible');
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('mapIndicator').style.display = 'none';
         }
        
         function spawnPowerUp() {
-            if (Math.random() > 0.3) return; // 30% chance
+            if (Math.random() > 0.008) return;
            
             const types = ['speed', 'shield', 'magnet', 'golden'];
-            const type = types[Math.floor(Math.random() * types.length)];
+            const weights = [0.3, 0.3, 0.3, 0.1];
+            let type = 'speed';
+            const rand = Math.random();
+            let cumulative = 0;
            
-            const x = 100 + Math.random() * (CONFIG.worldWidth - 200);
-            const y = 100 + Math.random() * (CONFIG.worldHeight - 200);
+            for (let i = 0; i < types.length; i++) {
+                cumulative += weights[i];
+                if (rand < cumulative) {
+                    type = types[i];
+                    break;
+                }
+            }
+           
+            const map = MAPS[currentMapIndex];
+            const x = 200 + Math.random() * (map.width - 400);
+            const y = 200 + Math.random() * (map.height - 400);
            
             powerups.push(new PowerUp(x, y, type));
         }
@@ -1384,58 +2072,71 @@
         }
        
         function createBubbles() {
-            // Ambient bubbles
-            if (Math.random() < 0.1) {
-                const x = Math.random() * CONFIG.worldWidth;
-                particles.push(new Particle(x, CONFIG.worldHeight + 10, 'bubble'));
+            if (Math.random() < 0.15) {
+                const map = MAPS[currentMapIndex];
+                const x = Math.random() * map.width;
+                particles.push(new Particle(x, map.height + 10, 'bubble'));
+            }
+           
+            // Portal particles
+            if (portal && Math.random() < 0.3) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * portal.radius;
+                particles.push(new Particle(
+                    portal.x + Math.cos(angle) * dist,
+                    portal.y + Math.sin(angle) * dist,
+                    'portal'
+                ));
             }
         }
        
         function checkCollisions() {
-            const playerEatSize = CONFIG.growthStages[player.stage].eatSize;
+            const playerEatSize = GROWTH_STAGES[player.stage].eatSize;
            
             for (let i = fishes.length - 1; i >= 0; i--) {
                 const fish = fishes[i];
                 const dist = Math.hypot(player.x - fish.x, player.y - fish.y);
                
                 if (dist < player.size + fish.size * 0.5) {
-                    // Can eat if player is significantly larger
-                    if (fish.size < playerEatSize) {
-                        // Eat fish
-                        const baseValue = Math.floor(fish.size / 2);
+                    // Eat smaller fish
+                    if (fish.size < playerEatSize && fish.species.behavior !== 'predator') {
+                        const baseValue = Math.floor(fish.species.points / 2);
                         const comboBonus = combo.count > 1 ? 1 + combo.count * 0.5 : 1;
                         const finalValue = Math.floor(baseValue * comboBonus);
                        
                         player.grow(finalValue);
                         player.fishEaten++;
                        
-                        // Combo system
                         const now = Date.now();
-                        if (now - combo.lastEatTime < CONFIG.comboTimeout) {
+                        if (now - combo.lastEatTime < 3000) {
                             combo.count++;
                         } else {
                             combo.count = 1;
                         }
                         combo.lastEatTime = now;
-                        combo.timer = CONFIG.comboTimeout;
+                        combo.timer = 3000;
                        
                         showCombo();
-                       
-                        // Effects
-                        createExplosion(fish.x, fish.y, fish.color, 8);
-                       
-                        // Remove fish
+                        createExplosion(fish.x, fish.y, fish.species.color, 12);
                         fishes.splice(i, 1);
                        
-                    } else if (fish.size > player.size * 1.1 && !player.shield) {
-                        // Predator eats player
-                        gameOver();
-                        return;
+                    } else if (fish.species.behavior === 'predator' && fish.size > player.size * 0.95) {
+                        // Shark attack!
+                        if (player.takeDamage(fish.species.damage)) {
+                            gameOver();
+                            return;
+                        } else {
+                            // Knockback
+                            const knockAngle = Math.atan2(player.y - fish.y, player.x - fish.x);
+                            player.vx = Math.cos(knockAngle) * 500;
+                            player.vy = Math.sin(knockAngle) * 500;
+                            createExplosion(player.x, player.y, '#ff4444', 15);
+                        }
                     }
                 }
             }
            
-            // Power-up collisions
+            // Power-ups
             for (let i = powerups.length - 1; i >= 0; i--) {
                 const pu = powerups[i];
                 const dist = Math.hypot(player.x - pu.x, player.y - pu.y);
@@ -1443,7 +2144,7 @@
                 if (dist < player.size + pu.size) {
                     if (pu.type === 'golden') {
                         player.grow(50);
-                        createExplosion(pu.x, pu.y, '#ffd700', 15);
+                        createExplosion(pu.x, pu.y, '#ffd700', 20);
                     } else {
                         player.activatePowerup(pu.type);
                     }
@@ -1463,7 +2164,7 @@
            
             setTimeout(() => {
                 comboEl.classList.remove('active');
-            }, 1000);
+            }, 1200);
         }
        
         function updateCombo(dt) {
@@ -1478,7 +2179,6 @@
         function gameOver() {
             currentState = GameState.GAMEOVER;
            
-            // Save high score
             if (player.score > highScore) {
                 highScore = player.score;
                 try {
@@ -1486,21 +2186,24 @@
                 } catch(e) {}
             }
            
-            // Update UI
+            document.querySelector('.gameOverTitle').textContent = 'GAME OVER';
+            document.querySelector('.gameOverTitle').style.color = '#ff4444';
             document.getElementById('finalScore').textContent = player.score;
             document.getElementById('highScoreDisplay').textContent = highScore;
             document.getElementById('fishEaten').textContent = player.fishEaten;
-            document.getElementById('maxStage').textContent = CONFIG.growthStages[player.maxStage].name;
+            document.getElementById('maxStage').textContent = GROWTH_STAGES[player.maxStage].name;
+            document.getElementById('mapsCleared').textContent = mapsCleared;
            
             document.getElementById('gameOver').classList.add('visible');
             document.getElementById('hud').style.display = 'none';
             document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('mapIndicator').style.display = 'none';
         }
        
         function updateHUD() {
             document.getElementById('scoreDisplay').textContent = player.score;
            
-            const stage = CONFIG.growthStages[player.stage];
+            const stage = GROWTH_STAGES[player.stage];
             const nextThreshold = stage.nextThreshold;
             const progress = nextThreshold === Infinity ? 100 : (player.growth / nextThreshold) * 100;
            
@@ -1515,22 +2218,63 @@
         }
        
         function updateCamera() {
-            // Smooth camera follow
             const targetX = player.x - canvas.width / 2;
             const targetY = player.y - canvas.height / 2;
            
-            camera.x += (targetX - camera.x) * 0.1;
-            camera.y += (targetY - camera.y) * 0.1;
+            camera.x += (targetX - camera.x) * 0.08;
+            camera.y += (targetY - camera.y) * 0.08;
            
-            // Clamp to world bounds
-            camera.x = Math.max(0, Math.min(CONFIG.worldWidth - canvas.width, camera.x));
-            camera.y = Math.max(0, Math.min(CONFIG.worldHeight - canvas.height, camera.y));
+            const map = MAPS[currentMapIndex];
+            camera.x = Math.max(0, Math.min(map.width - canvas.width, camera.x));
+            camera.y = Math.max(0, Math.min(map.height - canvas.height, camera.y));
+        }
+       
+        function drawMinimap() {
+            const map = MAPS[currentMapIndex];
+            const mmWidth = 180;
+            const mmHeight = 120;
+            const mmX = canvas.width - mmWidth - 20;
+            const mmY = canvas.height - mmHeight - 20;
+           
+            // Background
+            ctx.fillStyle = 'rgba(0, 20, 40, 0.8)';
+            ctx.fillRect(mmX, mmY, mmWidth, mmHeight);
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(mmX, mmY, mmWidth, mmHeight);
+           
+            const scaleX = mmWidth / map.width;
+            const scaleY = mmHeight / map.height;
+           
+            // Portal
+            if (portal) {
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath();
+                ctx.arc(mmX + portal.x * scaleX, mmY + portal.y * scaleY, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+           
+            // Player
+            ctx.fillStyle = '#00ff88';
+            ctx.beginPath();
+            ctx.arc(mmX + player.x * scaleX, mmY + player.y * scaleY, 4, 0, Math.PI * 2);
+            ctx.fill();
+           
+            // Viewport rectangle
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(
+                mmX + camera.x * scaleX,
+                mmY + camera.y * scaleY,
+                Math.min(canvas.width, map.width) * scaleX,
+                Math.min(canvas.height, map.height) * scaleY
+            );
         }
        
         function gameLoop(timestamp) {
             if (currentState !== GameState.PLAYING) return;
            
-            const dt = Math.min((timestamp - lastTime) / 1000, 0.1); // Cap dt
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
             lastTime = timestamp;
            
             // Update
@@ -1538,18 +2282,23 @@
             updateCamera();
             updateCombo(dt);
            
-            // Spawn entities
+            // Spawn
             spawnTimer += dt * 1000;
-            if (spawnTimer > CONFIG.spawnRate && fishes.length < CONFIG.maxFish) {
-                spawnFish();
+            const map = MAPS[currentMapIndex];
+            if (spawnTimer > 800 && fishes.length < map.maxFish) {
+                const types = ['prey', 'prey', 'neutral'];
+                if (Math.random() < 0.1) types.push('prey');
+                spawnFish(types[Math.floor(Math.random() * types.length)]);
                 spawnTimer = 0;
             }
            
-            if (Math.random() < 0.005) spawnPowerUp();
+            spawnPowerUp();
            
             // Update entities
             for (const fish of fishes) fish.update(dt, player);
             for (const pu of powerups) pu.update(dt);
+            if (portal) portal.update(dt);
+           
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].update(dt);
                 if (particles[i].life <= 0) particles.splice(i, 1);
@@ -1559,40 +2308,49 @@
             checkCollisions();
             updatePowerupUI();
            
-            // Render
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Portal check
+            if (portal && portal.checkPlayer(player)) {
+                // Show E prompt
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 20px Nunito';
+                ctx.textAlign = 'center';
+                ctx.fillText('Press E to enter portal', canvas.width/2, canvas.height/2 + 100);
+            }
            
-            // Background layers
+            // Render
+            ctx.fillStyle = map.bgColor[1];
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+           
             world.drawBackground(ctx, camera.x, camera.y);
            
-            // Entities (sorted by Y for depth)
+            // Sort by Y
             const allEntities = [
                 ...fishes.map(f => ({ type: 'fish', obj: f, y: f.y })),
                 ...powerups.map(p => ({ type: 'powerup', obj: p, y: p.y })),
+                portal ? { type: 'portal', obj: portal, y: portal.y } : null,
                 { type: 'player', obj: player, y: player.y }
-            ].sort((a, b) => a.y - b.y);
+            ].filter(e => e).sort((a, b) => a.y - b.y);
            
             for (const entity of allEntities) {
-                if (entity.type === 'fish') entity.obj.draw(ctx, camera.x, camera.y);
-                else if (entity.type === 'powerup') entity.obj.draw(ctx, camera.x, camera.y);
-                else if (entity.type === 'player') entity.obj.draw(ctx, camera.x, camera.y);
+                entity.obj.draw(ctx, camera.x, camera.y);
             }
            
-            // Particles
             for (const p of particles) p.draw(ctx, camera.x, camera.y);
            
-            // Foreground
             world.drawForeground(ctx, camera.x, camera.y);
            
-            // Vignette effect
+            // Vignette
             const gradient = ctx.createRadialGradient(
-                canvas.width/2, canvas.height/2, canvas.height/3,
+                canvas.width/2, canvas.height/2, canvas.height/2.5,
                 canvas.width/2, canvas.height/2, canvas.height
             );
             gradient.addColorStop(0, 'rgba(0, 26, 51, 0)');
-            gradient.addColorStop(1, 'rgba(0, 10, 20, 0.4)');
+            gradient.addColorStop(1, 'rgba(0, 5, 15, 0.5)');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+           
+            // Minimap
+            drawMinimap();
            
             requestAnimationFrame(gameLoop);
         }
