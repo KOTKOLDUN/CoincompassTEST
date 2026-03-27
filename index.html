@@ -190,7 +190,6 @@
             box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
         }
        
-        /* Map indicator */
         .mapIndicator {
             position: absolute;
             top: 20px;
@@ -280,7 +279,6 @@
         .powerupIndicator.shield { border-color: #ffd700; color: #ffd700; }
         .powerupIndicator.magnet { border-color: #ff69b4; color: #ff69b4; }
        
-        /* Portal notification */
         .portalNotification {
             position: absolute;
             top: 50%;
@@ -313,7 +311,6 @@
             font-size: 1.1rem;
         }
        
-        /* Pause Menu */
         #pauseMenu {
             position: absolute;
             top: 0;
@@ -360,7 +357,6 @@
             border-color: #00d4ff;
         }
        
-        /* Game Over Screen */
         #gameOver {
             position: absolute;
             top: 0;
@@ -467,19 +463,6 @@
         .tutorial.visible {
             opacity: 1;
         }
-       
-        /* Minimap */
-        #minimap {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 200px;
-            height: 150px;
-            background: rgba(0, 20, 40, 0.8);
-            border: 2px solid rgba(0, 212, 255, 0.3);
-            border-radius: 10px;
-            pointer-events: none;
-        }
     </style>
 </head>
 <body>
@@ -577,7 +560,7 @@
 
     <script>
         /* ============================================
-           GAME CONFIGURATION - Multiple Maps System
+           GAME CONFIGURATION
            ============================================ */
        
         const canvas = document.getElementById('gameCanvas');
@@ -587,8 +570,7 @@
             MENU: 0,
             PLAYING: 1,
             PAUSED: 2,
-            GAMEOVER: 3,
-            PORTAL_TRANSITION: 4
+            GAMEOVER: 3
         };
        
         let currentState = GameState.MENU;
@@ -596,7 +578,6 @@
         let currentMapIndex = 0;
         let mapsCleared = 0;
        
-        // Map configurations - 5 different zones
         const MAPS = [
             {
                 name: "Shallow Waters",
@@ -606,7 +587,7 @@
                 fishTypes: ['minnow', 'clownfish', 'butterflyfish'],
                 predators: [],
                 maxFish: 60,
-                portalAt: 3 // Open portal at stage 3
+                portalAt: 3
             },
             {
                 name: "Coral Reef",
@@ -646,13 +627,11 @@
                 fishTypes: ['giant_squid', 'colossal_squid'],
                 predators: ['megalodon', 'kraken'],
                 maxFish: 80,
-                portalAt: 5 // Final boss area
+                portalAt: 5
             }
         ];
        
-        // Fish species database
         const FISH_SPECIES = {
-            // Prey - Small fish
             minnow: { size: 8, speed: 100, color: '#90EE90', behavior: 'flee', points: 5 },
             clownfish: { size: 12, speed: 90, color: '#FF6B35', behavior: 'flee', points: 8 },
             butterflyfish: { size: 15, speed: 85, color: '#FFD700', behavior: 'flee', points: 12 },
@@ -661,20 +640,14 @@
             parrotfish: { size: 25, speed: 75, color: '#00FA9A', behavior: 'flee', points: 22 },
             lanternfish: { size: 10, speed: 110, color: '#87CEEB', behavior: 'flee', points: 10 },
             fangtooth: { size: 14, speed: 70, color: '#8B4513', behavior: 'flee', points: 14 },
-           
-            // Medium fish
             grouper: { size: 35, speed: 60, color: '#708090', behavior: 'neutral', points: 30 },
             viperfish: { size: 30, speed: 100, color: '#4B0082', behavior: 'neutral', points: 28 },
             oarfish: { size: 40, speed: 50, color: '#C0C0C0', behavior: 'neutral', points: 35 },
             anglerfish: { size: 45, speed: 40, color: '#2F4F4F', behavior: 'chase_small', points: 40 },
             blobfish: { size: 38, speed: 30, color: '#FFB6C1', behavior: 'neutral', points: 32 },
             gulper_eel: { size: 42, speed: 55, color: '#483D8B', behavior: 'chase_small', points: 38 },
-           
-            // Large prey (rare)
             giant_squid: { size: 80, speed: 70, color: '#8B0000', behavior: 'chase_medium', points: 100 },
             colossal_squid: { size: 100, speed: 65, color: '#4B0082', behavior: 'chase_medium', points: 150 },
-           
-            // Predators (Sharks!)
             small_shark: {
                 size: 60, speed: 120, color: '#696969',
                 behavior: 'predator', damage: 1, chaseRange: 400,
@@ -712,7 +685,6 @@
             }
         };
        
-        // Growth stages
         const GROWTH_STAGES = [
             { name: 'Tiny Fish', size: 15, eatSize: 12, color: '#4ade80', nextThreshold: 50 },
             { name: 'Small Fish', size: 25, eatSize: 22, color: '#60a5fa', nextThreshold: 150 },
@@ -724,7 +696,7 @@
         ];
        
         /* ============================================
-           PLAYER SYSTEM
+           PLAYER CLASS
            ============================================ */
        
         class Player {
@@ -762,7 +734,6 @@
             }
            
             update(dt) {
-                // WASD Input
                 let dx = 0;
                 let dy = 0;
                
@@ -771,14 +742,12 @@
                 if (this.keys.a) dx -= 1;
                 if (this.keys.d) dx += 1;
                
-                // Normalize diagonal
                 if (dx !== 0 && dy !== 0) {
                     const len = Math.sqrt(dx * dx + dy * dy);
                     dx /= len;
                     dy /= len;
                 }
                
-                // Apply movement
                 const speed = this.speedBoost ? 300 : 200;
                 const accel = 800;
                
@@ -787,11 +756,9 @@
                     this.vy += dy * accel * dt;
                 }
                
-                // Friction
                 this.vx *= 0.95;
                 this.vy *= 0.95;
                
-                // Limit speed
                 const velocity = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                 const maxVel = speed * (1 + this.stage * 0.15);
                 if (velocity > maxVel) {
@@ -799,25 +766,20 @@
                     this.vy = (this.vy / velocity) * maxVel;
                 }
                
-                // Update position
                 this.x += this.vx * dt;
                 this.y += this.vy * dt;
                
-                // Map bounds
                 const map = MAPS[currentMapIndex];
                 this.x = Math.max(this.size, Math.min(map.width - this.size, this.x));
                 this.y = Math.max(this.size, Math.min(map.height - this.size, this.y));
                
-                // Update angle
                 if (velocity > 10) {
                     this.angle = Math.atan2(this.vy, this.vx);
                 }
                
-                // Animation
                 this.tailAngle += dt * 15 * (velocity / 100 + 0.5);
                 this.finAngle = Math.sin(Date.now() / 200) * 0.3;
                
-                // Timers
                 if (this.speedBoost) {
                     this.speedTimer -= dt * 1000;
                     if (this.speedTimer <= 0) this.speedBoost = false;
@@ -840,7 +802,6 @@
                 const screenX = this.x - cameraX;
                 const screenY = this.y - cameraY;
                
-                // Skip if off screen
                 if (screenX < -200 || screenX > canvas.width + 200 ||
                     screenY < -200 || screenY > canvas.height + 200) return;
                
@@ -848,12 +809,10 @@
                 ctx.translate(screenX, screenY);
                 ctx.rotate(this.angle);
                
-                // Invulnerability flash
                 if (this.invulnerable && Math.floor(Date.now() / 100) % 2 === 0) {
                     ctx.globalAlpha = 0.5;
                 }
                
-                // Shield effect
                 if (this.shield) {
                     ctx.beginPath();
                     ctx.arc(0, 0, this.size + 15, 0, Math.PI * 2);
@@ -864,46 +823,43 @@
                     ctx.fill();
                 }
                
-                // Speed trail
                 if (this.speedBoost && Math.random() > 0.3) {
                     ctx.fillStyle = 'rgba(0, 212, 255, 0.4)';
                     ctx.fillRect(-this.size * 2.5, -this.size/2, this.size * 1.5, this.size);
                 }
                
-                // Fish body
                 const stage = GROWTH_STAGES[this.stage];
                 ctx.fillStyle = stage.color;
                
-                // Glow for large fish
                 if (this.stage >= 3) {
                     ctx.shadowBlur = 25;
                     ctx.shadowColor = stage.color;
                 }
                
-                // Main body (teardrop)
                 ctx.beginPath();
                 ctx.ellipse(0, 0, this.size, this.size * 0.55, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
                
-                // Tail
                 const tailWag = Math.sin(this.tailAngle) * 0.4;
-                ctx.fillStyle = this.darken(stage.color, 20);
+                ctx.fillStyle = '#000000';
+                ctx.globalAlpha = 0.3;
                 ctx.beginPath();
                 ctx.moveTo(-this.size * 0.7, 0);
                 ctx.lineTo(-this.size * 1.6, -this.size * 0.6 + tailWag * this.size * 0.4);
                 ctx.quadraticCurveTo(-this.size * 1.8, tailWag * this.size * 0.2, -this.size * 1.6, this.size * 0.6 + tailWag * this.size * 0.4);
                 ctx.closePath();
                 ctx.fill();
+                ctx.globalAlpha = 1;
                
-                // Side fins
-                ctx.fillStyle = this.darken(stage.color, 10);
+                ctx.fillStyle = '#000000';
+                ctx.globalAlpha = 0.2;
                 ctx.beginPath();
                 ctx.ellipse(this.size * 0.1, this.size * 0.45, this.size * 0.5, this.size * 0.25, 0.6 + this.finAngle, 0, Math.PI * 2);
                 ctx.ellipse(this.size * 0.1, -this.size * 0.45, this.size * 0.5, this.size * 0.25, -0.6 - this.finAngle, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.globalAlpha = 1;
                
-                // Dorsal fin
                 ctx.beginPath();
                 ctx.moveTo(0, -this.size * 0.5);
                 ctx.lineTo(-this.size * 0.3, -this.size * 0.9);
@@ -911,7 +867,6 @@
                 ctx.closePath();
                 ctx.fill();
                
-                // Eye
                 ctx.fillStyle = 'white';
                 ctx.beginPath();
                 ctx.arc(this.size * 0.5, -this.size * 0.15, this.size * 0.22, 0, Math.PI * 2);
@@ -922,7 +877,6 @@
                 ctx.arc(this.size * 0.6, -this.size * 0.15, this.size * 0.12, 0, Math.PI * 2);
                 ctx.fill();
                
-                // Highlight
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
                 ctx.beginPath();
                 ctx.ellipse(this.size * 0.2, -this.size * 0.25, this.size * 0.35, this.size * 0.18, -0.3, 0, Math.PI * 2);
@@ -931,16 +885,10 @@
                 ctx.restore();
             }
            
-            darken(color, percent) {
-                // Simple darken for visual variety
-                return color;
-            }
-           
             grow(amount) {
                 this.growth += amount;
                 this.score += amount * 10;
                
-                // Check stage progression
                 const currentStage = GROWTH_STAGES[this.stage];
                 if (this.growth >= currentStage.nextThreshold && this.stage < GROWTH_STAGES.length - 1) {
                     this.stage++;
@@ -949,8 +897,6 @@
                     if (this.stage > this.maxStage) this.maxStage = this.stage;
                    
                     createExplosion(this.x, this.y, GROWTH_STAGES[this.stage].color, 30);
-                   
-                    // Check for portal opening
                     checkPortalCondition();
                 }
                
@@ -960,17 +906,16 @@
             takeDamage(damage) {
                 if (this.shield || this.invulnerable) return false;
                
-                // Lose growth instead of instant death for smaller hits
                 if (damage === 1) {
                     this.growth = Math.max(0, this.growth - 30);
                     this.invulnerable = true;
                     this.invulnerableTimer = 1500;
                     createExplosion(this.x, this.y, '#ff4444', 10);
                     updateHUD();
-                    return false; // Not dead
+                    return false;
                 }
                
-                return true; // Dead
+                return true;
             }
            
             activatePowerup(type) {
@@ -993,7 +938,7 @@
         }
        
         /* ============================================
-           FISH & SHARK AI SYSTEM
+           FISH & SHARK AI
            ============================================ */
        
         class Fish {
@@ -1012,7 +957,6 @@
                 this.angle = angle;
                 this.tailAngle = Math.random() * Math.PI * 2;
                
-                // AI state
                 this.state = 'swim';
                 this.stateTimer = 0;
                 this.targetX = null;
@@ -1020,7 +964,6 @@
                 this.dashCooldown = 0;
                 this.ambushTimer = 0;
                
-                // Visual offset for variety
                 this.finOffset = Math.random() * 0.5;
             }
            
@@ -1031,14 +974,12 @@
                 const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
                 const seeRange = this.species.chaseRange || 250;
                
-                // SHARK BEHAVIORS - Aggressive predators!
                 if (this.species.behavior === 'predator') {
                     this.updateSharkAI(dt, player, distToPlayer, seeRange, map);
                 } else {
                     this.updateNormalAI(dt, player, distToPlayer, seeRange, map);
                 }
                
-                // Magnet effect
                 if (player.magnet && this.species.behavior !== 'predator' &&
                     player.size > this.size * 1.2 && distToPlayer < 400) {
                     const attractAngle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -1046,7 +987,6 @@
                     this.vy += Math.sin(attractAngle) * 500 * dt;
                 }
                
-                // Limit velocity
                 let maxSpeed = this.species.speed;
                 if (this.state === 'chase') maxSpeed *= 1.3;
                 if (this.state === 'dash') maxSpeed *= 2;
@@ -1057,16 +997,13 @@
                     this.vy = (this.vy / vel) * maxSpeed;
                 }
                
-                // Update position
                 this.x += this.vx * dt;
                 this.y += this.vy * dt;
                
-                // Update angle
                 if (vel > 5) {
                     this.angle = Math.atan2(this.vy, this.vx);
                 }
                
-                // World bounds - wrap around
                 const margin = 150;
                 if (this.x < -margin) this.x = map.width + margin;
                 if (this.x > map.width + margin) this.x = -margin;
@@ -1079,7 +1016,6 @@
                
                 switch(pattern) {
                     case 'circle_and_dash':
-                        // Circle then dash attack
                         if (dist < seeRange && player.size < this.size * 0.9) {
                             if (this.dashCooldown <= 0) {
                                 this.state = 'dash';
@@ -1088,7 +1024,6 @@
                                 this.vy = Math.sin(dashAngle) * this.species.speed * 2.5;
                                 this.dashCooldown = 2000;
                             } else {
-                                // Circle around
                                 this.state = 'circle';
                                 const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
                                 const circleAngle = angleToPlayer + Math.PI / 2;
@@ -1102,7 +1037,6 @@
                         break;
                        
                     case 'zigzag_chase':
-                        // Zigzag pursuit
                         if (dist < seeRange && player.size < this.size * 0.9) {
                             this.state = 'chase';
                             const baseAngle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -1116,7 +1050,6 @@
                         break;
                        
                     case 'ambush':
-                        // Wait then fast attack
                         if (dist < seeRange * 0.3 && player.size < this.size * 0.9) {
                             if (this.ambushTimer <= 0) {
                                 this.state = 'ambush_attack';
@@ -1140,7 +1073,6 @@
                         break;
                        
                     case 'fast_charge':
-                        // Direct fast charge
                         if (dist < seeRange && player.size < this.size * 0.9) {
                             this.state = 'charge';
                             const chargeAngle = Math.atan2(player.y - this.y, player.x - this.x);
@@ -1152,7 +1084,6 @@
                         break;
                        
                     case 'speed_hit':
-                        // Hit and run
                         if (dist < seeRange && player.size < this.size * 0.9) {
                             if (dist > 100) {
                                 this.state = 'approach_fast';
@@ -1169,7 +1100,6 @@
                         break;
                        
                     case 'territorial':
-                        // Guards an area
                         const centerX = map.width / 2;
                         const centerY = map.height / 2;
                         const distFromCenter = Math.hypot(this.x - centerX, this.y - centerY);
@@ -1180,7 +1110,6 @@
                             this.vx += Math.cos(angle) * 250 * dt;
                             this.vy += Math.sin(angle) * 250 * dt;
                         } else if (distFromCenter > 500) {
-                            // Return to center
                             const returnAngle = Math.atan2(centerY - this.y, centerX - this.x);
                             this.vx += Math.cos(returnAngle) * 150 * dt;
                             this.vy += Math.sin(returnAngle) * 150 * dt;
@@ -1188,11 +1117,8 @@
                         break;
                        
                     case 'tentacle_grab':
-                        // Kraken special - tries to surround
                         if (dist < seeRange && player.size < this.size * 0.9) {
                             this.state = 'surround';
-                            const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
-                            // Move to intercept player path
                             const predictX = player.x + player.vx * 0.5;
                             const predictY = player.y + player.vy * 0.5;
                             const interceptAngle = Math.atan2(predictY - this.y, predictX - this.x);
@@ -1202,7 +1128,6 @@
                         break;
                 }
                
-                // Patrol behavior when not chasing
                 if (this.state === 'patrol') {
                     if (Math.random() < 0.02) {
                         const patrolAngle = Math.random() * Math.PI * 2;
@@ -1211,7 +1136,6 @@
                     }
                 }
                
-                // Cooldowns
                 if (this.dashCooldown > 0) this.dashCooldown -= dt * 1000;
             }
            
@@ -1246,7 +1170,6 @@
                         break;
                        
                     case 'chase_small':
-                        // Chases smaller fish but not player unless tiny
                         if (dist < seeRange && player.size < this.size * 0.5) {
                             const chaseAngle = Math.atan2(player.y - this.y, player.x - this.x);
                             this.vx += Math.cos(chaseAngle) * 200 * dt;
@@ -1277,17 +1200,14 @@
                
                 const isShark = this.species.behavior === 'predator';
                
-                // Shark glow
                 if (isShark) {
                     ctx.shadowBlur = 20;
                     ctx.shadowColor = this.species.color;
                 }
                
-                // Body
                 ctx.fillStyle = this.species.color;
                
                 if (isShark) {
-                    // Shark body - more angular
                     ctx.beginPath();
                     ctx.moveTo(this.size, 0);
                     ctx.lineTo(-this.size * 0.5, -this.size * 0.4);
@@ -1298,7 +1218,6 @@
                     ctx.closePath();
                     ctx.fill();
                    
-                    // Dorsal fin
                     ctx.beginPath();
                     ctx.moveTo(0, -this.size * 0.3);
                     ctx.lineTo(-this.size * 0.2, -this.size * 0.9);
@@ -1306,14 +1225,14 @@
                     ctx.closePath();
                     ctx.fill();
                    
-                    // Pectoral fins
-                    ctx.fillStyle = this.darkenColor(this.species.color, 20);
+                    ctx.fillStyle = '#000000';
+                    ctx.globalAlpha = 0.3;
                     ctx.beginPath();
                     ctx.ellipse(this.size * 0.1, this.size * 0.5, this.size * 0.4, this.size * 0.15, 0.5, 0, Math.PI * 2);
                     ctx.ellipse(this.size * 0.1, -this.size * 0.5, this.size * 0.4, this.size * 0.15, -0.5, 0, Math.PI * 2);
                     ctx.fill();
+                    ctx.globalAlpha = 1;
                    
-                    // Tail (crescent shaped)
                     const tailWag = Math.sin(this.tailAngle) * 0.2;
                     ctx.fillStyle = this.species.color;
                     ctx.beginPath();
@@ -1323,7 +1242,6 @@
                     ctx.quadraticCurveTo(-this.size * 1.3, this.size * 0.6 + tailWag * this.size * 0.3, -this.size * 0.8, 0);
                     ctx.fill();
                    
-                    // Shark eye (more menacing)
                     ctx.fillStyle = 'black';
                     ctx.beginPath();
                     ctx.arc(this.size * 0.4, -this.size * 0.15, this.size * 0.12, 0, Math.PI * 2);
@@ -1333,7 +1251,6 @@
                     ctx.arc(this.size * 0.42, -this.size * 0.15, this.size * 0.04, 0, Math.PI * 2);
                     ctx.fill();
                    
-                    // Gills
                     ctx.strokeStyle = 'rgba(0,0,0,0.3)';
                     ctx.lineWidth = 2;
                     for (let i = 0; i < 3; i++) {
@@ -1341,15 +1258,12 @@
                         ctx.arc(-this.size * 0.2 + i * 5, 0, this.size * 0.3, -Math.PI/3, Math.PI/3);
                         ctx.stroke();
                     }
-                   
                 } else {
-                    // Normal fish body
                     ctx.beginPath();
                     ctx.ellipse(0, 0, this.size, this.size * 0.5, 0, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.shadowBlur = 0;
                    
-                    // Tail
                     const tailWag = Math.sin(this.tailAngle) * 0.3;
                     ctx.fillStyle = this.species.color;
                     ctx.globalAlpha = 0.9;
@@ -1361,14 +1275,14 @@
                     ctx.fill();
                     ctx.globalAlpha = 1;
                    
-                    // Fins
-                    ctx.fillStyle = this.darkenColor(this.species.color, 10);
+                    ctx.fillStyle = '#000000';
+                    ctx.globalAlpha = 0.15;
                     ctx.beginPath();
                     ctx.ellipse(0, this.size * 0.4, this.size * 0.35, this.size * 0.18, 0.5, 0, Math.PI * 2);
                     ctx.ellipse(0, -this.size * 0.4, this.size * 0.35, this.size * 0.18, -0.5, 0, Math.PI * 2);
                     ctx.fill();
+                    ctx.globalAlpha = 1;
                    
-                    // Eye
                     ctx.fillStyle = 'white';
                     ctx.beginPath();
                     ctx.arc(this.size * 0.4, -this.size * 0.1, this.size * 0.18, 0, Math.PI * 2);
@@ -1381,14 +1295,10 @@
                
                 ctx.restore();
             }
-           
-            darkenColor(color, percent) {
-                return color;
-            }
         }
        
         /* ============================================
-           PORTAL SYSTEM
+           PORTAL CLASS
            ============================================ */
        
         class Portal {
@@ -1418,7 +1328,6 @@
                
                 const pulse = 1 + Math.sin(this.pulseAngle) * 0.15;
                
-                // Outer glow
                 const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.radius * 1.5 * pulse);
                 gradient.addColorStop(0, 'rgba(147, 51, 234, 0.8)');
                 gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.4)');
@@ -1429,7 +1338,6 @@
                 ctx.arc(0, 0, this.radius * 1.5 * pulse, 0, Math.PI * 2);
                 ctx.fill();
                
-                // Portal rings
                 for (let i = 0; i < 3; i++) {
                     ctx.strokeStyle = `rgba(168, 85, 247, ${0.6 - i * 0.15})`;
                     ctx.lineWidth = 4 - i;
@@ -1438,7 +1346,6 @@
                     ctx.stroke();
                 }
                
-                // Rotating inner pattern
                 ctx.rotate(this.rotation);
                 ctx.strokeStyle = 'rgba(216, 180, 254, 0.8)';
                 ctx.lineWidth = 3;
@@ -1450,13 +1357,11 @@
                     ctx.stroke();
                 }
                
-                // Center
                 ctx.fillStyle = '#a855f7';
                 ctx.beginPath();
                 ctx.arc(0, 0, this.radius * 0.3, 0, Math.PI * 2);
                 ctx.fill();
                
-                // Text
                 ctx.rotate(-this.rotation);
                 ctx.fillStyle = 'white';
                 ctx.font = 'bold 16px Nunito';
@@ -1474,7 +1379,7 @@
         }
        
         /* ============================================
-           POWER-UP SYSTEM
+           POWER-UP CLASS
            ============================================ */
        
         class PowerUp {
@@ -1517,13 +1422,11 @@
                 ctx.shadowColor = colors[this.type];
                
                 if (this.type === 'golden') {
-                    // Golden fish
                     ctx.fillStyle = '#ffd700';
                     ctx.beginPath();
                     ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
                     ctx.fill();
                    
-                    // Crown
                     ctx.fillStyle = '#ff6b00';
                     ctx.beginPath();
                     ctx.moveTo(-12, -18);
@@ -1534,7 +1437,6 @@
                     ctx.closePath();
                     ctx.fill();
                    
-                    // Sparkle
                     ctx.fillStyle = '#fff';
                     ctx.font = '20px Arial';
                     ctx.fillText('✨', 15, -15);
@@ -1557,7 +1459,7 @@
         }
        
         /* ============================================
-           PARTICLE SYSTEM
+           PARTICLE CLASS
            ============================================ */
        
         class Particle {
@@ -1627,7 +1529,7 @@
         }
        
         /* ============================================
-           WORLD SYSTEM
+           WORLD CLASS
            ============================================ */
        
         class World {
@@ -1641,7 +1543,6 @@
             generate() {
                 const map = MAPS[currentMapIndex];
                
-                // Generate seaweed
                 this.seaweed = [];
                 for (let i = 0; i < 80; i++) {
                     this.seaweed.push({
@@ -1656,7 +1557,6 @@
                     });
                 }
                
-                // Generate rocks/coral
                 this.rocks = [];
                 for (let i = 0; i < 30; i++) {
                     this.rocks.push({
@@ -1667,7 +1567,6 @@
                     });
                 }
                
-                // Light rays
                 this.lightRays = [];
                 for (let i = 0; i < 6; i++) {
                     this.lightRays.push({
@@ -1683,7 +1582,6 @@
             drawBackground(ctx, cameraX, cameraY) {
                 const map = MAPS[currentMapIndex];
                
-                // Light rays
                 ctx.save();
                 for (const ray of this.lightRays) {
                     ray.x += Math.sin(Date.now() * ray.speed) * 0.3;
@@ -1720,7 +1618,6 @@
             }
            
             drawForeground(ctx, cameraX, cameraY) {
-                // Draw rocks
                 for (const rock of this.rocks) {
                     const screenX = rock.x - cameraX;
                     const screenY = rock.y - cameraY;
@@ -1732,14 +1629,12 @@
                     ctx.ellipse(screenX, screenY, rock.size, rock.size * 0.6, 0, 0, Math.PI * 2);
                     ctx.fill();
                    
-                    // Shadow
                     ctx.fillStyle = 'rgba(0,0,0,0.2)';
                     ctx.beginPath();
                     ctx.ellipse(screenX, screenY + 10, rock.size * 0.9, rock.size * 0.5, 0, 0, Math.PI * 2);
                     ctx.fill();
                 }
                
-                // Draw seaweed
                 for (const weed of this.seaweed) {
                     const screenX = weed.x - cameraX;
                     const screenY = weed.y - cameraY;
@@ -1770,7 +1665,7 @@
         }
        
         /* ============================================
-           GAME MANAGER
+           GAME VARIABLES & FUNCTIONS
            ============================================ */
        
         let player;
@@ -1797,7 +1692,6 @@
            
             resetGame();
            
-            // WASD handlers
             window.addEventListener('keydown', (e) => {
                 const key = e.key.toLowerCase();
                 if (key === 'w') player.keys.w = true;
@@ -1818,7 +1712,6 @@
                 if (key === 'd') player.keys.d = false;
             });
            
-            // UI handlers
             document.getElementById('startBtn').addEventListener('click', startGame);
             document.getElementById('pauseBtn').addEventListener('click', togglePause);
             document.getElementById('resumeBtn').addEventListener('click', togglePause);
@@ -1849,24 +1742,20 @@
             portalOpen = false;
             combo = { count: 0, timer: 0, lastEatTime: 0 };
            
-            // Spawn initial fish
             spawnInitialFish();
         }
        
         function spawnInitialFish() {
             const map = MAPS[currentMapIndex];
            
-            // Spawn prey fish
             for (let i = 0; i < map.maxFish * 0.6; i++) {
                 spawnFish('prey');
             }
            
-            // Spawn neutral fish
-            for (let i = 0; i < map.maxFish * 0.3; i++) {
+            for (let i = 0; i  map.maxFish * 0.3; i++) {
                 spawnFish('neutral');
             }
            
-            // Spawn predators based on map
             for (const predatorType of map.predators) {
                 for (let i = 0; i < 2 + currentMapIndex; i++) {
                     spawnSpecificFish(predatorType);
@@ -1898,7 +1787,6 @@
             const map = MAPS[currentMapIndex];
            
             let x, y;
-            // Spawn away from player
             do {
                 x = Math.random() * map.width;
                 y = Math.random() * map.height;
@@ -1957,7 +1845,6 @@
                 const map = MAPS[currentMapIndex];
                 portal = new Portal(map.width / 2, map.height / 2);
                
-                // Show notification
                 const notif = document.getElementById('portalNotification');
                 notif.classList.add('visible');
                 setTimeout(() => {
@@ -1968,7 +1855,6 @@
        
         function enterPortal() {
             if (currentMapIndex >= MAPS.length - 1) {
-                // Victory!
                 victory();
                 return;
             }
@@ -1976,20 +1862,16 @@
             currentMapIndex++;
             mapsCleared++;
            
-            // Transition effect
             createExplosion(player.x, player.y, '#a855f7', 50);
            
-            // Reset for new map
             const map = MAPS[currentMapIndex];
             player.x = map.width / 2;
             player.y = map.height / 2;
             player.vx = 0;
             player.vy = 0;
            
-            // Keep some growth progress
             player.growth = Math.floor(player.growth * 0.5);
            
-            // Clear and respawn
             fishes = [];
             powerups = [];
             portal = null;
@@ -1999,21 +1881,6 @@
            
             updateHUD();
            
-            // Show map name
-            document.getElementById(' some growth progress
-            player.growth = Math.floor(player.growth * 0.5);
-           
-            // Clear and respawn
-            fishes = [];
-            powerups = [];
-            portal = null;
-            portalOpen = false;
-            world.generate();
-            spawnInitialFish();
-           
-            updateHUD();
-           
-            // Show map name
             document.getElementById('currentMap').textContent = map.name;
         }
        
@@ -2065,7 +1932,7 @@
             powerups.push(new PowerUp(x, y, type));
         }
        
-        function createExplosion(x, y, color, count = 10) {
+        function createExplosion(x, y, color, count) {
             for (let i = 0; i < count; i++) {
                 particles.push(new Particle(x, y, 'sparkle', color));
             }
@@ -2078,7 +1945,6 @@
                 particles.push(new Particle(x, map.height + 10, 'bubble'));
             }
            
-            // Portal particles
             if (portal && Math.random() < 0.3) {
                 const angle = Math.random() * Math.PI * 2;
                 const dist = Math.random() * portal.radius;
@@ -2098,7 +1964,6 @@
                 const dist = Math.hypot(player.x - fish.x, player.y - fish.y);
                
                 if (dist < player.size + fish.size * 0.5) {
-                    // Eat smaller fish
                     if (fish.size < playerEatSize && fish.species.behavior !== 'predator') {
                         const baseValue = Math.floor(fish.species.points / 2);
                         const comboBonus = combo.count > 1 ? 1 + combo.count * 0.5 : 1;
@@ -2121,12 +1986,10 @@
                         fishes.splice(i, 1);
                        
                     } else if (fish.species.behavior === 'predator' && fish.size > player.size * 0.95) {
-                        // Shark attack!
                         if (player.takeDamage(fish.species.damage)) {
                             gameOver();
                             return;
                         } else {
-                            // Knockback
                             const knockAngle = Math.atan2(player.y - fish.y, player.x - fish.x);
                             player.vx = Math.cos(knockAngle) * 500;
                             player.vy = Math.sin(knockAngle) * 500;
@@ -2136,7 +1999,6 @@
                 }
             }
            
-            // Power-ups
             for (let i = powerups.length - 1; i >= 0; i--) {
                 const pu = powerups[i];
                 const dist = Math.hypot(player.x - pu.x, player.y - pu.y);
@@ -2236,7 +2098,6 @@
             const mmX = canvas.width - mmWidth - 20;
             const mmY = canvas.height - mmHeight - 20;
            
-            // Background
             ctx.fillStyle = 'rgba(0, 20, 40, 0.8)';
             ctx.fillRect(mmX, mmY, mmWidth, mmHeight);
             ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
@@ -2246,7 +2107,6 @@
             const scaleX = mmWidth / map.width;
             const scaleY = mmHeight / map.height;
            
-            // Portal
             if (portal) {
                 ctx.fillStyle = '#a855f7';
                 ctx.beginPath();
@@ -2254,13 +2114,11 @@
                 ctx.fill();
             }
            
-            // Player
             ctx.fillStyle = '#00ff88';
             ctx.beginPath();
             ctx.arc(mmX + player.x * scaleX, mmY + player.y * scaleY, 4, 0, Math.PI * 2);
             ctx.fill();
            
-            // Viewport rectangle
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.lineWidth = 1;
             ctx.strokeRect(
@@ -2277,12 +2135,10 @@
             const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
             lastTime = timestamp;
            
-            // Update
             player.update(dt);
             updateCamera();
             updateCombo(dt);
            
-            // Spawn
             spawnTimer += dt * 1000;
             const map = MAPS[currentMapIndex];
             if (spawnTimer > 800 && fishes.length < map.maxFish) {
@@ -2294,7 +2150,6 @@
            
             spawnPowerUp();
            
-            // Update entities
             for (const fish of fishes) fish.update(dt, player);
             for (const pu of powerups) pu.update(dt);
             if (portal) portal.update(dt);
@@ -2308,22 +2163,18 @@
             checkCollisions();
             updatePowerupUI();
            
-            // Portal check
             if (portal && portal.checkPlayer(player)) {
-                // Show E prompt
                 ctx.fillStyle = 'white';
                 ctx.font = 'bold 20px Nunito';
                 ctx.textAlign = 'center';
                 ctx.fillText('Press E to enter portal', canvas.width/2, canvas.height/2 + 100);
             }
            
-            // Render
             ctx.fillStyle = map.bgColor[1];
             ctx.fillRect(0, 0, canvas.width, canvas.height);
            
             world.drawBackground(ctx, camera.x, camera.y);
            
-            // Sort by Y
             const allEntities = [
                 ...fishes.map(f => ({ type: 'fish', obj: f, y: f.y })),
                 ...powerups.map(p => ({ type: 'powerup', obj: p, y: p.y })),
@@ -2339,7 +2190,6 @@
            
             world.drawForeground(ctx, camera.x, camera.y);
            
-            // Vignette
             const gradient = ctx.createRadialGradient(
                 canvas.width/2, canvas.height/2, canvas.height/2.5,
                 canvas.width/2, canvas.height/2, canvas.height
@@ -2349,14 +2199,15 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
            
-            // Minimap
             drawMinimap();
            
             requestAnimationFrame(gameLoop);
         }
        
-        // Initialize
+        // Start the game
         init();
     </script>
 </body>
 </html>
+
+ 
