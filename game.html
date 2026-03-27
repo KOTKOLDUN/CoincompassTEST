@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grow Fish - Deep Ocean Adventure</title>
+    <style>
+        /* ============================================
+           CSS - Visual Styling & UI
+           ============================================ */
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+       
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+       
+        body {
+            overflow: hidden;
+            background: #001a33;
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+        }
+       
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(180deg, #006994 0%, #001a33 100%);
+        }
+       
+        /* UI Overlay Container */
+        #uiLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+       
+        /* Start Menu */
+        #startMenu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(0, 105, 148, 0.9) 0%, rgba(0, 26, 51, 0.95) 100%);
+            pointer-events: auto;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+       
+        #startMenu.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+       
+        .gameTitle {
+            font-family: 'Fredoka One', cursive;
+            font-size: 5rem;
+            color: #fff;
+            text-shadow: 0 0 20px #00d4ff, 0 0 40px #00d4ff;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
+        }
+       
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+       
+        .subtitle {
+            color: #a8e6ff;
+            font-size: 1.3rem;
+            margin-bottom: 3rem;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+       
+        .btn {
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            font-family: 'Fredoka One', cursive;
+            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+            border: none;
+            border-radius: 50px;
+            color: #333;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+       
+        .btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
+        }
+       
+        .controls-hint {
+            margin-top: 2rem;
+            color: #7dd3fc;
+            font-size: 1rem;
+            display: flex;
+            gap: 2rem;
+        }
+       
+        .control-key {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+       
+        .key {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+       
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+        }
+       
+        .hudPanel {
+            background: rgba(0, 20, 40, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 25px;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+       
+        .scoreDisplay {
+            color: #ffd700;
+            font-family: 'Fredoka One', cursive;
+            font-size: 2rem;
+        }
+       
+        .scoreLabel {
+            color: #7dd3fc;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+       
+        .growthContainer {
+            width: 250px;
+        }
+       
+        .growthLabel {
+            color: #7dd3fc;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+       
+        .stageName {
+            color: #ffd700;
+            font-weight: bold;
+        }
+       
+        .growthBar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+       
+        .growthFill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff 0%, #00ff88 100%);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+       
+        .comboDisplay {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+       
+        .comboDisplay.active {
+            opacity: 1;
+            animation: comboPulse 0.5s ease;
+        }
+       
+        @keyframes comboPulse {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.2); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+       
+        .comboText {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.5rem;
+            color: #ff6b6b;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+        }
+       
+        .comboMultiplier {
+            color: #ffd700;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+       
+        /* Power-up Indicators */
+        #powerups {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            pointer-events: none;
+        }
+       
+        .powerupIndicator {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(0, 20, 40, 0.8);
+            border: 3px solid;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+       
+        .powerupIndicator.active {
+            opacity: 1;
+            transform: scale(1);
+            animation: powerupPulse 1s ease-in-out infinite;
+        }
+       
+        @keyframes powerupPulse {
+            0%, 100% { box-shadow: 0 0 10px currentColor; }
+            50% { box-shadow: 0 0 30px currentColor, 0 0 50px currentColor; }
+        }
+       
+        .powerupIndicator.speed { border-color: #00d4ff; color: #00d4ff; }
+        .powerupIndicator.shield { border-color: #ffd700; color: #ffd700; }
+        .powerupIndicator.magnet { border-color: #ff69b4; color: #ff69b4; }
+       
+        /* Pause Menu */
+        #pauseMenu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 10, 20, 0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 90;
+            backdrop-filter: blur(5px);
+        }
+       
+        #pauseMenu.visible {
+            display: flex;
+        }
+       
+        .pauseTitle {
+            font-family: 'Fredoka One', cursive;
+            font-size: 4rem;
+            color: #fff;
+            margin-bottom: 2rem;
+        }
+       
+        .pauseBtn {
+            margin: 10px;
+            padding: 12px 40px;
+            font-size: 1.3rem;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.5);
+            border-radius: 30px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+       
+        .pauseBtn:hover {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: #00d4ff;
+        }
+       
+        /* Game Over Screen */
+        #gameOver {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 100;
+        }
+       
+        #gameOver.visible {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+       
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+       
+        .gameOverTitle {
+            font-family: 'Fredoka One', cursive;
+            font-size: 4rem;
+            color: #ff4444;
+            text-shadow: 0 0 30px rgba(255, 68, 68, 0.8);
+            margin-bottom: 1rem;
+        }
+       
+        .finalScore {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+       
+        .highScore {
+            color: #ffd700;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+       
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 2rem;
+            color: #a8e6ff;
+        }
+       
+        .stat {
+            text-align: center;
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+       
+        .statValue {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.8rem;
+            color: #fff;
+        }
+       
+        /* Pause Button */
+        #pauseBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 20, 40, 0.7);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 50%;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+       
+        #pauseBtn:hover {
+            background: rgba(0, 212, 255, 0.3);
+            transform: scale(1.1);
+        }
+       
+        /* Tutorial overlay */
+        .tutorial {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1rem;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+       
+        .tutorial.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         HTML - Game Structure
+         ============================================ -->
+    <canvas id="gameCanvas"></canvas>
+   
+    <div id="uiLayer">
+        <!-- Start Menu -->
+        <div id="startMenu">
+            <h1 class="gameTitle">🐟 Grow Fish</h1>
+            <p class="subtitle">
+                Swim through the living ocean ecosystem.<br>
+                Eat smaller fish to grow. Avoid larger predators.<br>
+                Become the Apex Predator of the deep!
+            </p>
+            <button class="btn" id="startBtn">DIVE IN</button>
+            <div class="controls-hint">
+                <span class="control-key"><span class="key">WASD</span> or <span class="key">Arrows</span> to Swim</span>
+                <span class="control-key"><span class="key">Mouse</span> to Guide</span>
+                <span class="control-key"><span class="key">P</span> to Pause</span>
+            </div>
+        </div>
+       
+        <!-- HUD -->
+        <div id="hud" style="display: none;">
+            <div class="hudPanel">
+                <div class="scoreLabel">Score</div>
+                <div class="scoreDisplay" id="scoreDisplay">0</div>
+            </div>
+           
+            <div class="hudPanel growthContainer">
+                <div class="growthLabel">
+                    <span>Growth Progress</span>
+                    <span class="stageName" id="stageName">Tiny Fish</span>
+                </div>
+                <div class="growthBar">
+                    <div class="growthFill" id="growthFill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+       
+        <div class="comboDisplay" id="comboDisplay">
+            <div class="comboText" id="comboText">COMBO x2</div>
+            <div class="comboMultiplier">+50% Bonus!</div>
+        </div>
+       
+        <div id="powerups">
+            <div class="powerupIndicator speed" id="speedIndicator">⚡</div>
+            <div class="powerupIndicator shield" id="shieldIndicator">🛡️</div>
+            <div class="powerupIndicator magnet" id="magnetIndicator">🧲</div>
+        </div>
+       
+        <button id="pauseBtn" style="display: none;">⏸</button>
+       
+        <div class="tutorial" id="tutorial">
+            Eat smaller fish (green) • Avoid larger predators (red)
+        </div>
+       
+        <!-- Pause Menu -->
+        <div id="pauseMenu">
+            <h2 class="pauseTitle">PAUSED</h2>
+            <button class="pauseBtn" id="resumeBtn">Resume</button>
+            <button class="pauseBtn" id="restartPauseBtn">Restart</button>
+        </div>
+       
+        <!-- Game Over Screen -->
+        <div id="gameOver">
+            <h2 class="gameOverTitle">GAME OVER</h2>
+            <div class="finalScore">Final Score: <span id="finalScore">0</span></div>
+            <div class="highScore">🏆 High Score: <span id="highScoreDisplay">0</span></div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="statValue" id="fishEaten">0</div>
+                    <div>Fish Eaten</div>
+                </div>
+                <div class="stat">
+                    <div class="statValue" id="maxStage">Tiny</div>
+                    <div>Max Stage</div>
+                </div>
+            </div>
+            <button class="btn" id="restartBtn">SWIM AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        /* ============================================
+           GAME ENGINE - Core Systems
+           ============================================ */
+       
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+       
+        // Game State
+        const GameState = {
+            MENU: 0,
+            PLAYING: 1,
+            PAUSED: 2,
+            GAMEOVER: 3
+        };
+       
+        let currentState = GameState.MENU;
+        let animationId = null;
+        let lastTime = 0;
+       
+        // Game Configuration
+        const CONFIG = {
+            worldWidth: 3000,
+            worldHeight: 2000,
+            baseSpeed: 200,
+            maxFish: 80,
+            spawnRate: 1000,
+            comboTimeout: 3000,
+            growthStages: [
+                { name: 'Tiny Fish', size: 15, eatSize: 10, color: '#4ade80', nextThreshold: 50 },
+                { name: 'Small Fish', size: 25, eatSize: 20, color: '#60a5fa', nextThreshold: 150 },
+                { name: 'Medium Fish', size: 40, eatSize: 35, color: '#a78bfa', nextThreshold: 350 },
+                { name: 'Large Fish', size: 60, eatSize: 55, color: '#f472b6', nextThreshold: 700 },
+                { name: 'Apex Predator', size: 85, eatSize: 80, color: '#fbbf24', nextThreshold: Infinity }
+            ]
+        };
+       
+        /* ============================================
+           PLAYER SYSTEM - Fish Growth & Control
+           ============================================ */
+       
+        class Player {
+            constructor() {
+                this.x = CONFIG.worldWidth / 2;
+                this.y = CONFIG.worldHeight / 2;
+                this.vx = 0;
+                this.vy = 0;
+                this.angle = 0;
+                this.stage = 0;
+                this.size = CONFIG.growthStages[0].size;
+                this.growth = 0;
+                this.score = 0;
+                this.fishEaten = 0;
+                this.maxStage = 0;
+               
+                // Power-ups
+                this.speedBoost = false;
+                this.shield = false;
+                this.magnet = false;
+                this.speedTimer = 0;
+                this.shieldTimer = 0;
+                this.magnetTimer = 0;
+               
+                // Visual
+                this.tailAngle = 0;
+                this.finAngle = 0;
+               
+                // Input
+                this.keys = {};
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.useMouse = false;
+            }
+           
+            update(dt) {
+                // Handle input
+                let dx = 0;
+                let dy = 0;
+               
+                // Keyboard input
+                if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
+                if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
+                if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
+                if (this.keys['d'] || this.keys['arrowright']) dx += 1;
+               
+                // Mouse input (relative to canvas center)
+                if (this.useMouse && (Math.abs(this.mouseX) > 10 || Math.abs(this.mouseY) > 10)) {
+                    dx = this.mouseX / 200;
+                    dy = this.mouseY / 200;
+                    // Clamp
+                    const len = Math.sqrt(dx*dx + dy*dy);
+                    if (len > 1) {
+                        dx /= len;
+                        dy /= len;
+                    }
+                }
+               
+                // Apply movement
+                const speed = this.speedBoost ? CONFIG.baseSpeed * 1.8 : CONFIG.baseSpeed;
+                const accel = 800;
+               
+                if (dx !== 0 || dy !== 0) {
+                    this.vx += dx * accel * dt;
+                    this.vy += dy * accel * dt;
+                }
+               
+                // Friction
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+               
+                // Limit speed
+                const velocity = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                const maxVel = speed * (1 + this.stage * 0.1);
+                if (velocity > maxVel) {
+                    this.vx = (this.vx / velocity) * maxVel;
+                    this.vy = (this.vy / velocity) * maxVel;
+                }
+               
+                // Update position
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+               
+                // World bounds
+                this.x = Math.max(this.size, Math.min(CONFIG.worldWidth - this.size, this.x));
+                this.y = Math.max(this.size, Math.min(CONFIG.worldHeight - this.size, this.y));
+               
+                // Update angle based on velocity
+                if (velocity > 10) {
+                    this.angle = Math.atan2(this.vy, this.vx);
+                }
+               
+                // Animation
+                this.tailAngle += dt * 15 * (velocity / 100 + 0.5);
+                this.finAngle = Math.sin(Date.now() / 200) * 0.3;
+               
+                // Update power-up timers
+                if (this.speedBoost) {
+                    this.speedTimer -= dt * 1000;
+                    if (this.speedTimer <= 0) this.speedBoost = false;
+                }
+                if (this.shield) {
+                    this.shieldTimer -= dt * 1000;
+                    if (this.shieldTimer <= 0) this.shield = false;
+                }
+                if (this.magnet) {
+                    this.magnetTimer -= dt * 1000;
+                    if (this.magnetTimer <= 0) this.magnet = false;
+                }
+            }
+           
+            draw(ctx, cameraX, cameraY) {
+                const screenX = this.x - cameraX;
+                const screenY = this.y - cameraY;
+               
+                ctx.save();
+                ctx.translate(screenX, screenY);
+                ctx.rotate(this.angle);
+               
+                // Shield effect
+                if (this.shield) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size + 10, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 215, 0, ${0.5 + Math.sin(Date.now() / 100) * 0.3})`;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    ctx.fillStyle = `rgba(255, 215, 0, 0.1)`;
+                    ctx.fill();
+                }
+               
+                // Speed trail effect
+                if (this.speedBoost && Math.random() > 0.5) {
+                    ctx.fillStyle = 'rgba(0, 212, 255, 0.3)';
+                    ctx.fillRect(-this.size * 2, -this.size/3, this.size, this.size/1.5);
+                }
+               
+                // Fish body (teardrop shape)
+                const stage = CONFIG.growthStages[this.stage];
+                ctx.fillStyle = stage.color;
+               
+                // Glow effect for larger fish
+                if (this.stage >= 2) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = stage.color;
+                }
+               
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+               
+                // Tail
+                const tailWag = Math.sin(this.tailAngle) * 0.3;
+                ctx.fillStyle = this.darkenColor(stage.color, 20);
+                ctx.beginPath();
+                ctx.moveTo(-this.size * 0.7, 0);
+                ctx.lineTo(-this.size * 1.5, -this.size * 0.5 + tailWag * this.size * 0.3);
+                ctx.lineTo(-this.size * 1.5, this.size * 0.5 + tailWag * this.size * 0.3);
+                ctx.closePath();
+                ctx.fill();
+               
+                // Side fins
+                ctx.fillStyle = this.darkenColor(stage.color, 10);
+                ctx.beginPath();
+                ctx.ellipse(0, this.size * 0.4, this.size * 0.4, this.size * 0.2, 0.5 + this.finAngle, 0, Math.PI * 2);
+                ctx.ellipse(0, -this.size * 0.4, this.size * 0.4, this.size * 0.2, -0.5 - this.finAngle, 0, Math.PI * 2);
+                ctx.fill();
+               
+                // Eye
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(this.size * 0.5, -this.size * 0.15, this.size * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+               
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(this.size * 0.6, -this.size * 0.15, this.size * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+               
+                // Highlight
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(this.size * 0.2, -this.size * 0.2, this.size * 0.3, this.size * 0.15, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+               
+                ctx.restore();
+            }
+           
+            darkenColor(color, percent) {
+                // Simple color darkening for fish parts
+                return color;
+            }
+           
+            grow(amount) {
+                this.growth += amount;
+                this.score += amount * 10;
+               
+                // Check stage progression
+                const currentStage = CONFIG.growthStages[this.stage];
+                if (this.growth >= currentStage.nextThreshold && this.stage < CONFIG.growthStages.length - 1) {
+                    this.stage++;
+                    this.size = CONFIG.growthStages[this.stage].size;
+                    this.growth = 0;
+                    if (this.stage > this.maxStage) this.maxStage = this.stage;
+                   
+                    // Visual feedback
+                    createExplosion(this.x, this.y, CONFIG.growthStages[this.stage].color, 20);
+                }
+               
+                updateHUD();
+            }
+           
+            activatePowerup(type) {
+                switch(type) {
+                    case 'speed':
+                        this.speedBoost = true;
+                        this.speedTimer = 5000;
+                        break;
+                    case 'shield':
+                        this.shield = true;
+                        this.shieldTimer = 8000;
+                        break;
+                    case 'magnet':
+                        this.magnet = true;
+                        this.magnetTimer = 6000;
+                        break;
+                }
+                updatePowerupUI();
+            }
+        }
+       
+        /* ============================================
+           FISH AI - Enemy & Prey System
+           ============================================ */
+       
+        class Fish {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'prey', 'neutral', 'predator'
+               
+                // Size based on type and random variation
+                const baseSizes = { prey: 8, neutral: 20, predator: 45 };
+                const variation = 0.5 + Math.random() * 0.5;
+                this.size = baseSizes[type] * variation;
+               
+                // Velocity
+                const speed = type === 'prey' ? 80 : type === 'neutral' ? 120 : 100;
+                const angle = Math.random() * Math.PI * 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+               
+                // Visual properties
+                this.angle = angle;
+                this.tailAngle = Math.random() * Math.PI * 2;
+               
+                // Color based on type
+                const colors = {
+                    prey: ['#86efac', '#4ade80', '#22c55e'],
+                    neutral: ['#60a5fa', '#3b82f6', '#2563eb'],
+                    predator: ['#f87171', '#ef4444', '#dc2626']
+                };
+                this.color = colors[type][Math.floor(Math.random() * colors[type].length)];
+               
+                // AI state
+                this.state = 'swim';
+                this.stateTimer = 0;
+                this.targetX = null;
+                this.targetY = null;
+               
+                // Schooling behavior for prey
+                this.schoolId = Math.floor(Math.random() * 5); // Random school group
+            }
+           
+            update(dt, player) {
+                this.tailAngle += dt * 10;
+               
+                // AI Behavior based on type
+                const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+                const seeDistance = 200 + this.size * 2;
+               
+                switch(this.type) {
+                    case 'prey':
+                        // Flee from player if close and player is bigger
+                        if (distToPlayer < seeDistance && player.size > this.size * 1.2) {
+                            this.state = 'flee';
+                            // Flee in opposite direction
+                            const fleeAngle = Math.atan2(this.y - player.y, this.x - player.x);
+                            this.vx += Math.cos(fleeAngle) * 300 * dt;
+                            this.vy += Math.sin(fleeAngle) * 300 * dt;
+                        } else {
+                            // Random swimming with schooling tendency
+                            this.state = 'swim';
+                            if (Math.random() < 0.02) {
+                                this.vx += (Math.random() - 0.5) * 100;
+                                this.vy += (Math.random() - 0.5) * 100;
+                            }
+                        }
+                        break;
+                       
+                    case 'neutral':
+                        // Avoid player if too close
+                        if (distToPlayer < seeDistance * 0.5) {
+                            const avoidAngle = Math.atan2(this.y - player.y, this.x - player.x);
+                            this.vx += Math.cos(avoidAngle) * 200 * dt;
+                            this.vy += Math.sin(avoidAngle) * 200 * dt;
+                        }
+                        break;
+                       
+                    case 'predator':
+                        // Chase player if player is smaller
+                        if (distToPlayer < seeDistance * 1.5 && player.size < this.size * 0.8) {
+                            this.state = 'chase';
+                            const chaseAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                            this.vx += Math.cos(chaseAngle) * 150 * dt;
+                            this.vy += Math.sin(chaseAngle) * 150 * dt;
+                        } else {
+                            this.state = 'patrol';
+                            // Patrol behavior
+                            if (Math.random() < 0.01) {
+                                const patrolAngle = Math.random() * Math.PI * 2;
+                                this.vx = Math.cos(patrolAngle) * 100;
+                                this.vy = Math.sin(patrolAngle) * 100;
+                            }
+                        }
+                        break;
+                }
+               
+                // Magnet effect - attract small fish to player
+                if (player.magnet && this.type === 'prey' && player.size > this.size * 1.2) {
+                    const magnetDist = 300;
+                    if (distToPlayer < magnetDist) {
+                        const attractAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                        this.vx += Math.cos(attractAngle) * 400 * dt;
+                        this.vy += Math.sin(attractAngle) * 400 * dt;
+                    }
+                }
+               
+                // Limit velocity
+                const maxSpeed = this.type === 'prey' ? 120 : this.type === 'predator' ? 140 : 100;
+                const vel = Math.hypot(this.vx, this.vy);
+                if (vel > maxSpeed) {
+                    this.vx = (this.vx / vel) * maxSpeed;
+                    this.vy = (this.vy / vel) * maxSpeed;
+                }
+               
+                // Update position
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+               
+                // Update angle
+                if (vel > 5) {
+                    this.angle = Math.atan2(this.vy, this.vx);
+                }
+               
+                // World bounds - wrap around or bounce
+                const margin = 100;
+                if (this.x < -margin) this.x = CONFIG.worldWidth + margin;
+                if (this.x > CONFIG.worldWidth + margin) this.x = -margin;
+                if (this.y < -margin) this.y = CONFIG.worldHeight + margin;
+                if (this.y > CONFIG.worldHeight + margin) this.y = -margin;
+            }
+           
+            draw(ctx, cameraX, cameraY) {
+                const screenX = this.x - cameraX;
+                const screenY = this.y - cameraY;
+               
+                // Skip if off screen
+                if (screenX < -100 || screenX > canvas.width + 100 ||
+                    screenY < -100 || screenY > canvas.height + 100) return;
+               
+                ctx.save();
+                ctx.translate(screenX, screenY);
+                ctx.rotate(this.angle);
+               
+                // Draw fish body
+                ctx.fillStyle = this.color;
+               
+                // Glow for predators
+                if (this.type === 'predator') {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.color;
+                }
+               
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.size, this.size * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+               
+                // Tail animation
+                const tailWag = Math.sin(this.tailAngle) * 0.3;
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(-this.size * 0.8, 0);
+                ctx.lineTo(-this.size * 1.4, -this.size * 0.4 + tailWag * this.size * 0.2);
+                ctx.lineTo(-this.size * 1.4, this.size * 0.4 + tailWag * this.size * 0.2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.globalAlpha = 1;
+               
+                // Eye
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(this.size * 0.4, -this.size * 0.1, this.size * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(this.size * 0.5, -this.size * 0.1, this.size * 0.08, 0, Math.PI * 2);
+                ctx.fill();
+               
+                ctx.restore();
+            }
+        }
+       
+        /* ============================================
+           POWER-UP SYSTEM
+           ============================================ */
+       
+        class PowerUp {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'speed', 'shield', 'magnet', 'golden'
+                this.size = 20;
+                this.bobAngle = Math.random() * Math.PI * 2;
+                this.pulseAngle = 0;
+            }
+           
+            update(dt) {
+                this.bobAngle += dt * 3;
+                this.pulseAngle += dt * 5;
+                this.y += Math.sin(this.bobAngle) * 0.5;
+            }
+           
+            draw(ctx, cameraX, cameraY) {
+                const screenX = this.x - cameraX;
+                const screenY = this.y - cameraY;
+               
+                if (screenX < -50 || screenX > canvas.width + 50 ||
+                    screenY < -50 || screenY > canvas.height + 50) return;
+               
+                ctx.save();
+                ctx.translate(screenX, screenY);
+               
+                const pulse = 1 + Math.sin(this.pulseAngle) * 0.2;
+                ctx.scale(pulse, pulse);
+               
+                // Glow
+                const colors = {
+                    speed: '#00d4ff',
+                    shield: '#ffd700',
+                    magnet: '#ff69b4',
+                    golden: '#ffd700'
+                };
+               
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = colors[this.type];
+               
+                if (this.type === 'golden') {
+                    // Golden fish shape
+                    ctx.fillStyle = '#ffd700';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                   
+                    // Crown
+                    ctx.fillStyle = '#ff6b00';
+                    ctx.beginPath();
+                    ctx.moveTo(-10, -15);
+                    ctx.lineTo(-5, -25);
+                    ctx.lineTo(0, -20);
+                    ctx.lineTo(5, -25);
+                    ctx.lineTo(10, -15);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    // Orb with icon
+                    ctx.fillStyle = colors[this.type];
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                   
+                    ctx.fillStyle = 'white';
+                    ctx.font = `${this.size}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const icons = { speed: '⚡', shield: '🛡️', magnet: '🧲' };
+                    ctx.fillText(icons[this.type], 0, 2);
+                }
+               
+                ctx.restore();
+            }
+        }
+       
+        /* ============================================
+           PARTICLE SYSTEM - Bubbles & Effects
+           ============================================ */
+       
+        class Particle {
+            constructor(x, y, type, color = null) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'bubble', 'sparkle', 'food'
+                this.life = 1;
+                this.decay = 0.01 + Math.random() * 0.02;
+               
+                if (type === 'bubble') {
+                    this.vx = (Math.random() - 0.5) * 20;
+                    this.vy = -50 - Math.random() * 50;
+                    this.size = 2 + Math.random() * 6;
+                    this.color = `rgba(255, 255, 255, ${0.3 + Math.random() * 0.3})`;
+                } else if (type === 'sparkle') {
+                    this.vx = (Math.random() - 0.5) * 200;
+                    this.vy = (Math.random() - 0.5) * 200;
+                    this.size = 3 + Math.random() * 5;
+                    this.color = color || '#ffd700';
+                    this.decay = 0.02 + Math.random() * 0.03;
+                } else if (type === 'food') {
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.size = 4;
+                    this.color = color;
+                    this.decay = 0.05;
+                }
+            }
+           
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.life -= this.decay;
+               
+                if (this.type === 'bubble') {
+                    this.vx += Math.sin(Date.now() / 500 + this.y / 50) * 10 * dt;
+                } else if (this.type === 'sparkle') {
+                    this.vx *= 0.95;
+                    this.vy *= 0.95;
+                }
+            }
+           
+            draw(ctx, cameraX, cameraY) {
+                const screenX = this.x - cameraX;
+                const screenY = this.y - cameraY;
+               
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+               
+                if (this.type === 'bubble') {
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Shine
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(screenX - this.size * 0.3, screenY - this.size * 0.3, this.size * 0.2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+               
+                ctx.globalAlpha = 1;
+            }
+        }
+       
+        /* ============================================
+           WORLD SYSTEM - Environment & Background
+           ============================================ */
+       
+        class World {
+            constructor() {
+                this.seaweed = [];
+                this.lightRays = [];
+                this.generateSeaweed();
+                this.generateLightRays();
+            }
+           
+            generateSeaweed() {
+                for (let i = 0; i < 50; i++) {
+                    this.seaweed.push({
+                        x: Math.random() * CONFIG.worldWidth,
+                        y: CONFIG.worldHeight,
+                        height: 100 + Math.random() * 200,
+                        segments: 5 + Math.floor(Math.random() * 5),
+                        offset: Math.random() * Math.PI * 2,
+                        speed: 0.5 + Math.random() * 0.5,
+                        color: `hsl(${120 + Math.random() * 40}, ${60 + Math.random() * 20}%, ${20 + Math.random() * 20}%)`
+                    });
+                }
+            }
+           
+            generateLightRays() {
+                for (let i = 0; i < 5; i++) {
+                    this.lightRays.push({
+                        x: Math.random() * CONFIG.worldWidth,
+                        width: 50 + Math.random() * 100,
+                        angle: 0.1 + Math.random() * 0.2,
+                        opacity: 0.1 + Math.random() * 0.1,
+                        speed: 0.001 + Math.random() * 0.002
+                    });
+                }
+            }
+           
+            drawBackground(ctx, cameraX, cameraY) {
+                // Deep ocean gradient is handled by CSS, but we add depth layers
+               
+                // Light rays from surface
+                ctx.save();
+                for (const ray of this.lightRays) {
+                    ray.x += Math.sin(Date.now() * ray.speed) * 0.5;
+                   
+                    const screenX = ray.x - cameraX;
+                   
+                    // Only draw if visible
+                    if (screenX > -200 && screenX < canvas.width + 200) {
+                        const gradient = ctx.createLinearGradient(
+                            screenX, 0,
+                            screenX + Math.sin(ray.angle) * canvas.height,
+                            canvas.height
+                        );
+                        gradient.addColorStop(0, `rgba(255, 255, 255, ${ray.opacity})`);
+                        gradient.addColorStop(0.5, `rgba(0, 212, 255, ${ray.opacity * 0.5})`);
+                        gradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+                       
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.moveTo(screenX - ray.width/2, 0);
+                        ctx.lineTo(screenX + ray.width/2, 0);
+                        ctx.lineTo(
+                            screenX + ray.width/2 + Math.sin(ray.angle) * canvas.height * 0.8,
+                            canvas.height
+                        );
+                        ctx.lineTo(
+                            screenX - ray.width/2 + Math.sin(ray.angle) * canvas.height * 0.8,
+                            canvas.height
+                        );
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
+            }
+           
+            drawSeaweed(ctx, cameraX, cameraY) {
+                for (const weed of this.seaweed) {
+                    const screenX = weed.x - cameraX;
+                    const screenY = weed.y - cameraY;
+                   
+                    if (screenX < -100 || screenX > canvas.width + 100) continue;
+                   
+                    ctx.strokeStyle = weed.color;
+                    ctx.lineWidth = 8;
+                    ctx.lineCap = 'round';
+                   
+                    ctx.beginPath();
+                    ctx.moveTo(screenX, screenY);
+                   
+                    for (let i = 1; i <= weed.segments; i++) {
+                        const segmentY = screenY - (weed.height / weed.segments) * i;
+                        const sway = Math.sin(Date.now() / 1000 * weed.speed + weed.offset + i * 0.5) * (i * 3);
+                        ctx.lineTo(screenX + sway, segmentY);
+                    }
+                   
+                    ctx.stroke();
+                }
+            }
+           
+            drawForeground(ctx, cameraX, cameraY) {
+                // Draw seaweed in foreground for depth
+                this.drawSeaweed(ctx, cameraX, cameraY);
+            }
+        }
+       
+        /* ============================================
+           GAME MANAGER - Main Logic
+           ============================================ */
+       
+        let player;
+        let fishes = [];
+        let powerups = [];
+        let particles = [];
+        let world;
+        let camera = { x: 0, y: 0 };
+        let combo = { count: 0, timer: 0, lastEatTime: 0 };
+        let spawnTimer = 0;
+        let highScore = 0;
+       
+        // Load high score
+        try {
+            highScore = parseInt(localStorage.getItem('growFishHighScore')) || 0;
+        } catch(e) {
+            highScore = 0;
+        }
+       
+        function init() {
+            resize();
+            window.addEventListener('resize', resize);
+           
+            player = new Player();
+            world = new World();
+            fishes = [];
+            powerups = [];
+            particles = [];
+            combo = { count: 0, timer: 0, lastEatTime: 0 };
+           
+            // Initial fish population
+            for (let i = 0; i < 30; i++) {
+                spawnFish();
+            }
+           
+            // Input handlers
+            window.addEventListener('keydown', (e) => {
+                player.keys[e.key.toLowerCase()] = true;
+                if (e.key.toLowerCase() === 'p') togglePause();
+            });
+           
+            window.addEventListener('keyup', (e) => {
+                player.keys[e.key.toLowerCase()] = false;
+            });
+           
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                player.mouseX = e.clientX - rect.left - canvas.width / 2;
+                player.mouseY = e.clientY - rect.top - canvas.height / 2;
+                player.useMouse = true;
+            });
+           
+            canvas.addEventListener('mouseleave', () => {
+                player.useMouse = false;
+            });
+           
+            // UI handlers
+            document.getElementById('startBtn').addEventListener('click', startGame);
+            document.getElementById('pauseBtn').addEventListener('click', togglePause);
+            document.getElementById('resumeBtn').addEventListener('click', togglePause);
+            document.getElementById('restartBtn').addEventListener('click', restartGame);
+            document.getElementById('restartPauseBtn').addEventListener('click', restartGame);
+        }
+       
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+       
+        function startGame() {
+            document.getElementById('startMenu').classList.add('hidden');
+            document.getElementById('hud').style.display = 'flex';
+            document.getElementById('pauseBtn').style.display = 'flex';
+            document.getElementById('tutorial').classList.add('visible');
+           
+            setTimeout(() => {
+                document.getElementById('tutorial').classList.remove('visible');
+            }, 5000);
+           
+            currentState = GameState.PLAYING;
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+       
+        function togglePause() {
+            if (currentState === GameState.PLAYING) {
+                currentState = GameState.PAUSED;
+                document.getElementById('pauseMenu').classList.add('visible');
+            } else if (currentState === GameState.PAUSED) {
+                currentState = GameState.PLAYING;
+                document.getElementById('pauseMenu').classList.remove('visible');
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+       
+        function restartGame() {
+            document.getElementById('gameOver').classList.remove('visible');
+            document.getElementById('pauseMenu').classList.remove('visible');
+           
+            player = new Player();
+            fishes = [];
+            powerups = [];
+            particles = [];
+            combo = { count: 0, timer: 0, lastEatTime: 0 };
+           
+            for (let i = 0; i < 30; i++) spawnFish();
+           
+            currentState = GameState.PLAYING;
+            lastTime = performance.now();
+            updateHUD();
+            requestAnimationFrame(gameLoop);
+        }
+       
+        function spawnFish() {
+            // Spawn based on player stage and difficulty
+            const stage = player ? player.stage : 0;
+            const types = ['prey', 'prey', 'neutral'];
+           
+            if (stage > 0) types.push('neutral');
+            if (stage > 1) types.push('predator');
+            if (stage > 2) types.push('predator', 'predator');
+           
+            // More dangerous as player grows
+            const type = types[Math.floor(Math.random() * types.length)];
+           
+            // Spawn at edges
+            let x, y;
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? -50 : CONFIG.worldWidth + 50;
+                y = Math.random() * CONFIG.worldHeight;
+            } else {
+                x = Math.random() * CONFIG.worldWidth;
+                y = Math.random() < 0.5 ? -50 : CONFIG.worldHeight + 50;
+            }
+           
+            fishes.push(new Fish(x, y, type));
+        }
+       
+        function spawnPowerUp() {
+            if (Math.random() > 0.3) return; // 30% chance
+           
+            const types = ['speed', 'shield', 'magnet', 'golden'];
+            const type = types[Math.floor(Math.random() * types.length)];
+           
+            const x = 100 + Math.random() * (CONFIG.worldWidth - 200);
+            const y = 100 + Math.random() * (CONFIG.worldHeight - 200);
+           
+            powerups.push(new PowerUp(x, y, type));
+        }
+       
+        function createExplosion(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, 'sparkle', color));
+            }
+        }
+       
+        function createBubbles() {
+            // Ambient bubbles
+            if (Math.random() < 0.1) {
+                const x = Math.random() * CONFIG.worldWidth;
+                particles.push(new Particle(x, CONFIG.worldHeight + 10, 'bubble'));
+            }
+        }
+       
+        function checkCollisions() {
+            const playerEatSize = CONFIG.growthStages[player.stage].eatSize;
+           
+            for (let i = fishes.length - 1; i >= 0; i--) {
+                const fish = fishes[i];
+                const dist = Math.hypot(player.x - fish.x, player.y - fish.y);
+               
+                if (dist < player.size + fish.size * 0.5) {
+                    // Can eat if player is significantly larger
+                    if (fish.size < playerEatSize) {
+                        // Eat fish
+                        const baseValue = Math.floor(fish.size / 2);
+                        const comboBonus = combo.count > 1 ? 1 + combo.count * 0.5 : 1;
+                        const finalValue = Math.floor(baseValue * comboBonus);
+                       
+                        player.grow(finalValue);
+                        player.fishEaten++;
+                       
+                        // Combo system
+                        const now = Date.now();
+                        if (now - combo.lastEatTime < CONFIG.comboTimeout) {
+                            combo.count++;
+                        } else {
+                            combo.count = 1;
+                        }
+                        combo.lastEatTime = now;
+                        combo.timer = CONFIG.comboTimeout;
+                       
+                        showCombo();
+                       
+                        // Effects
+                        createExplosion(fish.x, fish.y, fish.color, 8);
+                       
+                        // Remove fish
+                        fishes.splice(i, 1);
+                       
+                    } else if (fish.size > player.size * 1.1 && !player.shield) {
+                        // Predator eats player
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+           
+            // Power-up collisions
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                const pu = powerups[i];
+                const dist = Math.hypot(player.x - pu.x, player.y - pu.y);
+               
+                if (dist < player.size + pu.size) {
+                    if (pu.type === 'golden') {
+                        player.grow(50);
+                        createExplosion(pu.x, pu.y, '#ffd700', 15);
+                    } else {
+                        player.activatePowerup(pu.type);
+                    }
+                    powerups.splice(i, 1);
+                }
+            }
+        }
+       
+        function showCombo() {
+            if (combo.count < 2) return;
+           
+            const comboEl = document.getElementById('comboDisplay');
+            const textEl = document.getElementById('comboText');
+           
+            textEl.textContent = `COMBO x${combo.count}`;
+            comboEl.classList.add('active');
+           
+            setTimeout(() => {
+                comboEl.classList.remove('active');
+            }, 1000);
+        }
+       
+        function updateCombo(dt) {
+            if (combo.count > 0) {
+                combo.timer -= dt * 1000;
+                if (combo.timer <= 0) {
+                    combo.count = 0;
+                }
+            }
+        }
+       
+        function gameOver() {
+            currentState = GameState.GAMEOVER;
+           
+            // Save high score
+            if (player.score > highScore) {
+                highScore = player.score;
+                try {
+                    localStorage.setItem('growFishHighScore', highScore);
+                } catch(e) {}
+            }
+           
+            // Update UI
+            document.getElementById('finalScore').textContent = player.score;
+            document.getElementById('highScoreDisplay').textContent = highScore;
+            document.getElementById('fishEaten').textContent = player.fishEaten;
+            document.getElementById('maxStage').textContent = CONFIG.growthStages[player.maxStage].name;
+           
+            document.getElementById('gameOver').classList.add('visible');
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'none';
+        }
+       
+        function updateHUD() {
+            document.getElementById('scoreDisplay').textContent = player.score;
+           
+            const stage = CONFIG.growthStages[player.stage];
+            const nextThreshold = stage.nextThreshold;
+            const progress = nextThreshold === Infinity ? 100 : (player.growth / nextThreshold) * 100;
+           
+            document.getElementById('growthFill').style.width = `${progress}%`;
+            document.getElementById('stageName').textContent = stage.name;
+        }
+       
+        function updatePowerupUI() {
+            document.getElementById('speedIndicator').classList.toggle('active', player.speedBoost);
+            document.getElementById('shieldIndicator').classList.toggle('active', player.shield);
+            document.getElementById('magnetIndicator').classList.toggle('active', player.magnet);
+        }
+       
+        function updateCamera() {
+            // Smooth camera follow
+            const targetX = player.x - canvas.width / 2;
+            const targetY = player.y - canvas.height / 2;
+           
+            camera.x += (targetX - camera.x) * 0.1;
+            camera.y += (targetY - camera.y) * 0.1;
+           
+            // Clamp to world bounds
+            camera.x = Math.max(0, Math.min(CONFIG.worldWidth - canvas.width, camera.x));
+            camera.y = Math.max(0, Math.min(CONFIG.worldHeight - canvas.height, camera.y));
+        }
+       
+        function gameLoop(timestamp) {
+            if (currentState !== GameState.PLAYING) return;
+           
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1); // Cap dt
+            lastTime = timestamp;
+           
+            // Update
+            player.update(dt);
+            updateCamera();
+            updateCombo(dt);
+           
+            // Spawn entities
+            spawnTimer += dt * 1000;
+            if (spawnTimer > CONFIG.spawnRate && fishes.length < CONFIG.maxFish) {
+                spawnFish();
+                spawnTimer = 0;
+            }
+           
+            if (Math.random() < 0.005) spawnPowerUp();
+           
+            // Update entities
+            for (const fish of fishes) fish.update(dt, player);
+            for (const pu of powerups) pu.update(dt);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update(dt);
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
+           
+            createBubbles();
+            checkCollisions();
+            updatePowerupUI();
+           
+            // Render
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+           
+            // Background layers
+            world.drawBackground(ctx, camera.x, camera.y);
+           
+            // Entities (sorted by Y for depth)
+            const allEntities = [
+                ...fishes.map(f => ({ type: 'fish', obj: f, y: f.y })),
+                ...powerups.map(p => ({ type: 'powerup', obj: p, y: p.y })),
+                { type: 'player', obj: player, y: player.y }
+            ].sort((a, b) => a.y - b.y);
+           
+            for (const entity of allEntities) {
+                if (entity.type === 'fish') entity.obj.draw(ctx, camera.x, camera.y);
+                else if (entity.type === 'powerup') entity.obj.draw(ctx, camera.x, camera.y);
+                else if (entity.type === 'player') entity.obj.draw(ctx, camera.x, camera.y);
+            }
+           
+            // Particles
+            for (const p of particles) p.draw(ctx, camera.x, camera.y);
+           
+            // Foreground
+            world.drawForeground(ctx, camera.x, camera.y);
+           
+            // Vignette effect
+            const gradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, canvas.height/3,
+                canvas.width/2, canvas.height/2, canvas.height
+            );
+            gradient.addColorStop(0, 'rgba(0, 26, 51, 0)');
+            gradient.addColorStop(1, 'rgba(0, 10, 20, 0.4)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+           
+            requestAnimationFrame(gameLoop);
+        }
+       
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
